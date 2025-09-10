@@ -1,34 +1,45 @@
 using System;
 
-public class Game
-{
-    //this is an empty space
-    public static string empty = ".";
 
-    //Player Token
-    public static string player = "@";
+//Player Class to neaten code
+public class User {
+
+    //Players Token
+    public string token = "@";
 
     //Where the Player is loacated on the map on x axis
-    public static int player_x = 1;
+    public int x = 2;
 
     //Where the Player will be located once position is updated on x axis
-    public static int player_dx = 1;
+    public int dx = 2;
 
     //Where the Player is loacated on the map on y axis
-    public static int player_y = 2;
+    public int y = 4;
 
     //Where the Player will be located once position is updated on y axis
-    public static int player_dy = 2;
+    public int dy = 4; 
+}
 
-    //Gameboard it initalizes where the player starts
-    public static string[,] game_map = {{empty, empty, empty}, {empty, empty, empty}, {empty, player, empty}};
 
-    //What direction the player will be moving in
+public class Game
+{
+    //Direction player is going
     public static string direction = "";
+
+    //Empty Tile
+    public static string empty = ".";
+
+    //Player object
+    public static User Player = new User();
+
+    //Game Map
+    public static string[,] game_map = {{empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}};
 
     //Main Game Loop
     public static void Main()
     {
+        //Places the Player at start Position
+        game_map[Player.y, Player.x] = Player.token;
         //Draws the Inital Game map
         Draw_Game();
 
@@ -40,16 +51,16 @@ public class Game
         switch (direction)
         {
             case "north":
-                player_dy -= 1;
+                Player.dy -= 1;
                 break;
             case "south":
-                player_dy += 1;
+                Player.dy += 1;
                 break;
             case "east":
-                player_dx -= 1;
+                Player.dx -= 1;
                 break;
             case "west":
-                player_dx += 1;
+                Player.dx += 1;
                 break;
         }
         //Update the Player's Position
@@ -61,18 +72,29 @@ public class Game
     //Draws the Game Map as a 2D array
     public static void Draw_Game()
     {
-        Console.WriteLine(game_map[0, 0] + game_map[0, 1] + game_map[0,2]);
-        Console.WriteLine(game_map[1, 0] + game_map[1, 1] + game_map[1,2]);
-        Console.WriteLine(game_map[2, 0] + game_map[2, 1] + game_map[2,2]);
+        //for the Length of the Y Axis run this code
+       for (int y = 0; y < game_map.GetLength(0); y++)
+       {
+        //for the Length of the X axis run this code
+        for (int x = 0; x < game_map.GetLength(1); x++ )
+        {
+            //Print the game at each cordinate
+            Console.Write(game_map[y, x]);
+        }
+        //After a row has been completed print a new line to start the next row until the loop ends
+        Console.WriteLine("");
+       }
     }
+
+    //Update Player Position when this is called
     public static void UpdatePlayPosition()
     {
         //Places The Player Token at the new Position
-        game_map[player_dy, player_dx] = game_map[player_y, player_x];
+        game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
         //Deletes the player Token from the old position
-        game_map[player_y, player_x] = empty;
+        game_map[Player.y, Player.x] = empty;
         //Sets the Players current Position to the Delta Versions
-        player_x = player_dx;
-        player_y = player_dy;
+        Player.x = Player.dx;
+        Player.y = Player.dy;
     }
 }
