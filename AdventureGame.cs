@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 
 
 //Player Class to neaten code
-public class User {
+public class User
+{
 
     //Players Token
     public string token = "@";
@@ -17,7 +18,7 @@ public class User {
     public int y = 4;
 
     //Where the Player will be located once position is updated on y axis
-    public int dy = 4; 
+    public int dy = 4;
 
     public bool NPC = false;
 }
@@ -35,7 +36,7 @@ public class Game
     public static User Player = new User();
 
     //Game Map
-    public static string[,] game_map = {{empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}, {empty, empty, empty, empty, empty}};
+    public static string[,] game_map = { { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty } };
 
     //Main Game Loop
     public static void Main()
@@ -75,17 +76,17 @@ public class Game
     public static void Draw_Game()
     {
         //for the Length of the Y Axis run this code
-       for (int y = 0; y < game_map.GetLength(0); y++)
-       {
-        //for the Length of the X axis run this code
-        for (int x = 0; x < game_map.GetLength(1); x++ )
+        for (int y = 0; y < game_map.GetLength(0); y++)
         {
-            //Print the game at each cordinate
-            Console.Write(game_map[y, x]);
+            //for the Length of the X axis run this code
+            for (int x = 0; x < game_map.GetLength(1); x++)
+            {
+                //Print the game at each cordinate
+                Console.Write(game_map[y, x]);
+            }
+            //After a row has been completed print a new line to start the next row until the loop ends
+            Console.WriteLine("");
         }
-        //After a row has been completed print a new line to start the next row until the loop ends
-        Console.WriteLine("");
-       }
     }
 
     //Update Player Position when this is called
