@@ -18,6 +18,8 @@ public class User {
 
     //Where the Player will be located once position is updated on y axis
     public int dy = 4; 
+
+    public bool NPC = false;
 }
 
 
