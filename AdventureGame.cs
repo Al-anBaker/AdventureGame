@@ -1,10 +1,8 @@
 ﻿using System;
 
-
 //Player Class to neaten code
 public class Character
 {
-
     //Players Token
     public string token = "@";
 
@@ -33,7 +31,6 @@ public class Character
     public int HP = 10;
 }
 
-
 public class Game
 {
     //Direction player is going
@@ -52,12 +49,24 @@ public class Game
     public static Character Enemy = new Character();
 
     //Game Map
-    public static string[,] game_map = { { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty }, { empty, empty, empty, empty, empty } };
+    public static string[,] game_map =
+    {
+        { empty, empty, empty, empty, empty },
+        { empty, empty, empty, empty, empty },
+        { empty, empty, empty, empty, empty },
+        { empty, empty, empty, empty, empty },
+        { empty, empty, empty, empty, empty }
+    };
 
     //Main Game Loop
     public static void Main()
     {
+<<<<<<< HEAD
         //Initalises the Enemies properties
+=======
+        //Places the Player at start Position
+
+>>>>>>> b36b17a (Neater Code)
         InitaliseFoes();
 
         //Sets Characters to Inital Places
@@ -65,7 +74,6 @@ public class Game
 
         //Starts the Main Game Loop
         Game_Loop();
-
     }
     //Draws the Game Map as a 2D array
     public static void Draw_Game()
@@ -92,8 +100,13 @@ public class Game
         {
             Combat();
         }
+<<<<<<< HEAD
         //Else run through normal
         else {
+=======
+        else
+        {
+>>>>>>> b36b17a (Neater Code)
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
             //Deletes the player Token from the old position
@@ -104,7 +117,6 @@ public class Game
             //Sets the Player to where they are located
             game_map[Player.y, Player.x] = Player.token;
         }
-
     }
 
     public static void InitaliseFoes()
@@ -137,16 +149,14 @@ public class Game
                 Enemy.HP = Enemy.HP - 1;
                 //Tell the player what happened
                 Console.WriteLine("Player hit Enemy for 1 damage");
-                Console.WriteLine("Enemy has "+Enemy.HP +" HP remaining!");
+                Console.WriteLine("Enemy has " + Enemy.HP + " HP remaining!");
                 return;
-
             }
             //If the Player is stronger or Equal to the enemy, then change no values and report to the player that They are unable to pierce the Enemy
             else if ((Player.ATK < Enemy.DEF) || (Player.ATK == Enemy.DEF))
             {
                 Console.WriteLine("Player Unable to Damage Enemy!");
                 return;
-
             }
         }
 
@@ -160,9 +170,8 @@ public class Game
                 Player.HP = Player.HP - 1;
                 //And inform the Player
                 Console.WriteLine("Enemy attacked Player for 1 damage");
-                Console.WriteLine("Player has " +Player.HP + " HP remaining!");
+                Console.WriteLine("Player has " + Player.HP + " HP remaining!");
                 return;
-
             }
 
             //Again, if Enemy atk is weaker then or equal to Player Defence then change no values and inform the player
@@ -170,7 +179,6 @@ public class Game
             {
                 Console.WriteLine("Enemy Unable to Damage Player!");
                 return;
-
             }
         }
     }
@@ -197,10 +205,16 @@ public class Game
 
         if (command == "stats")
         {
+<<<<<<< HEAD
             //Print User stats
             Console.WriteLine("Player's Attack: "+ Player.ATK);
             Console.WriteLine("Player's Defence: "+ Player.DEF);
             Console.WriteLine("Player's Health: "+ Player.HP);
+=======
+            Console.WriteLine("Player's Attack: " + Player.ATK);
+            Console.WriteLine("Player's Defence: " + Player.DEF);
+            Console.WriteLine("Player's Health: " + Player.HP);
+>>>>>>> b36b17a (Neater Code)
         }
         else if (command == "move")
         {
@@ -208,19 +222,19 @@ public class Game
             Console.WriteLine("north, south, east, west: ");
             command = Console.ReadLine();
             switch (command)
-        {
-            case "north":
-                Player.dy -= 1;
-                break;
-            case "south":
-                Player.dy += 1;
-                break;
-            case "east":
-                Player.dx -= 1;
-                break;
-            case "west":
-                Player.dx += 1;
-                break;
+            {
+                case "north":
+                    Player.dy -= 1;
+                    break;
+                case "south":
+                    Player.dy += 1;
+                    break;
+                case "east":
+                    Player.dx -= 1;
+                    break;
+                case "west":
+                    Player.dx += 1;
+                    break;
             }
         }
 
