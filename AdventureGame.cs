@@ -61,12 +61,6 @@ public class Game
     //Main Game Loop
     public static void Main()
     {
-<<<<<<< HEAD
-        //Initalises the Enemies properties
-=======
-        //Places the Player at start Position
-
->>>>>>> b36b17a (Neater Code)
         InitaliseFoes();
 
         //Sets Characters to Inital Places
@@ -100,13 +94,9 @@ public class Game
         {
             Combat();
         }
-<<<<<<< HEAD
         //Else run through normal
-        else {
-=======
         else
         {
->>>>>>> b36b17a (Neater Code)
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
             //Deletes the player Token from the old position
@@ -205,16 +195,15 @@ public class Game
 
         if (command == "stats")
         {
-<<<<<<< HEAD
+
             //Print User stats
             Console.WriteLine("Player's Attack: "+ Player.ATK);
             Console.WriteLine("Player's Defence: "+ Player.DEF);
             Console.WriteLine("Player's Health: "+ Player.HP);
-=======
+
             Console.WriteLine("Player's Attack: " + Player.ATK);
             Console.WriteLine("Player's Defence: " + Player.DEF);
             Console.WriteLine("Player's Health: " + Player.HP);
->>>>>>> b36b17a (Neater Code)
         }
         else if (command == "move")
         {
