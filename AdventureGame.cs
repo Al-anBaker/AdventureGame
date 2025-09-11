@@ -53,8 +53,9 @@ public class Game
     {
         
         //Places the Player at start Position
-        game_map[Player.y, Player.x] = Player.token;
+        
         InitaliseFoes();
+        UpdatePlayPosition();
         Game_Loop();
 
     }
@@ -78,7 +79,7 @@ public class Game
     //Update Player Position when this is called
     public static void UpdatePlayPosition()
     {
-        if (game_map[Player.dy, Player.dx] == Enemy.token)
+        if (game_map[Player.dy, Player.dx] == game_map[Enemy.y, Enemy.x])
         {
             Combat();
         }
@@ -90,6 +91,7 @@ public class Game
             //Sets the Players current Position to the Delta Versions
             Player.x = Player.dx;
             Player.y = Player.dy;
+            game_map[Player.y, Player.x] = Player.token;
         }
 
     }
@@ -113,7 +115,7 @@ public class Game
             {
                 Enemy.HP = Enemy.HP - 1;
                 Console.WriteLine("Player hit Enemy for 1 damage");
-                Console.WriteLine("Enemy has "+Enemy.HP +" remaining!");
+                Console.WriteLine("Enemy has "+Enemy.HP +" HP remaining!");
                 return;
 
             }
@@ -130,7 +132,7 @@ public class Game
             {
                 Player.HP = Player.HP - 1;
                 Console.WriteLine("Enemy attacked Player for 1 damage");
-                Console.WriteLine("Player has " +Player.HP + " remaining!");
+                Console.WriteLine("Player has " +Player.HP + " HP remaining!");
                 return;
 
             }
@@ -147,6 +149,12 @@ public class Game
     {
         //Draws the Inital Game map
         Draw_Game();
+        UpdatePlayPosition();
+
+        if (Enemy.HP <= 0)
+        {
+            game_map[Enemy.y, Enemy.x] = empty;
+        }
 
         //Ask the Player what command they want to go in
         Console.WriteLine("Do you want to look at stats or move: ");
