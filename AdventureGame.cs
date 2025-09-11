@@ -20,12 +20,16 @@ public class Character
     //Where the Player will be located once position is updated on y axis
     public int dy = 2;
 
+    //If the Character Object is a NPC
     public bool NPC = false;
 
+    //Defines the base ATK for the Player
     public int ATK = 5;
 
+    //Defines the base DEF for the Player
     public int DEF = 5;
 
+    //Defines the base HP for the Player
     public int HP = 10;
 }
 
@@ -38,11 +42,13 @@ public class Game
     //Empty Tile
     public static string empty = ".";
 
+    //If the Player was the last to move
     public static bool playerLastMove = true;
 
     //Player object
     public static Character Player = new Character();
 
+    //Test Enemy object
     public static Character Enemy = new Character();
 
     //Game Map
@@ -51,11 +57,13 @@ public class Game
     //Main Game Loop
     public static void Main()
     {
-        
-        //Places the Player at start Position
-        
+        //Initalises the Enemies properties
         InitaliseFoes();
+
+        //Sets Characters to Inital Places
         UpdatePlayPosition();
+
+        //Starts the Main Game Loop
         Game_Loop();
 
     }
@@ -79,10 +87,12 @@ public class Game
     //Update Player Position when this is called
     public static void UpdatePlayPosition()
     {
+        // If the Player is going to walk into the Enemy Call Combat instead
         if (game_map[Player.dy, Player.dx] == game_map[Enemy.y, Enemy.x])
         {
             Combat();
         }
+        //Else run through normal
         else {
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
@@ -91,6 +101,7 @@ public class Game
             //Sets the Players current Position to the Delta Versions
             Player.x = Player.dx;
             Player.y = Player.dy;
+            //Sets the Player to where they are located
             game_map[Player.y, Player.x] = Player.token;
         }
 
@@ -98,27 +109,39 @@ public class Game
 
     public static void InitaliseFoes()
     {
+        //Enemy's Base Position
         Enemy.x = 2;
-        Enemy.token = "%";
         Enemy.y = 0;
+
+        //Enemy's Token
+        Enemy.token = "%";
+
+        //Enemy's Base Stats
         Enemy.DEF = 0;
         Enemy.ATK = 0;
         Enemy.HP = 2;
+
+        //Sets the Token to the Enemy's current location
         game_map[Enemy.y, Enemy.x] = Enemy.token;
     }
 
     public static void Combat()
     {
+        //If the Player was last to move is true
         if (playerLastMove == true)
         {
+            //Then its considered to be the Player attacking then chect to see if the Player is stronger than the Enemy
             if (Player.ATK > Enemy.DEF)
             {
+                //If so then Update the Enemys HP to be decremented by 1
                 Enemy.HP = Enemy.HP - 1;
+                //Tell the player what happened
                 Console.WriteLine("Player hit Enemy for 1 damage");
                 Console.WriteLine("Enemy has "+Enemy.HP +" HP remaining!");
                 return;
 
             }
+            //If the Player is stronger or Equal to the enemy, then change no values and report to the player that They are unable to pierce the Enemy
             else if ((Player.ATK < Enemy.DEF) || (Player.ATK == Enemy.DEF))
             {
                 Console.WriteLine("Player Unable to Damage Enemy!");
@@ -126,16 +149,23 @@ public class Game
 
             }
         }
+
+        //If the player wasnt the last to move
         else if (playerLastMove == false)
         {
+            //Then we treat it as the Enemy attacked the Player
             if (Enemy.ATK > Player.DEF)
             {
+                // If Enemy stronger than Player then Decrement Player's HP by 1
                 Player.HP = Player.HP - 1;
+                //And inform the Player
                 Console.WriteLine("Enemy attacked Player for 1 damage");
                 Console.WriteLine("Player has " +Player.HP + " HP remaining!");
                 return;
 
             }
+
+            //Again, if Enemy atk is weaker then or equal to Player Defence then change no values and inform the player
             else if ((Enemy.ATK < Player.DEF) || (Enemy.ATK == Player.DEF))
             {
                 Console.WriteLine("Enemy Unable to Damage Player!");
@@ -145,12 +175,15 @@ public class Game
         }
     }
 
+    //Main Game Loop
     public static void Game_Loop()
     {
         //Draws the Inital Game map
         Draw_Game();
+        //Updates Players Position if they Moved
         UpdatePlayPosition();
 
+        //If the Enemy's HP is = 0 or less that 0 then remove the Enemy and set it to empty
         if (Enemy.HP <= 0)
         {
             game_map[Enemy.y, Enemy.x] = empty;
@@ -158,17 +191,20 @@ public class Game
 
         //Ask the Player what command they want to go in
         Console.WriteLine("Do you want to look at stats or move: ");
-        //Sets the command fo the users input
+
+        //Sets the command for the users input
         command = Console.ReadLine();
-        //Switches based on where user wants to go and adjusts the Delta Position depending on the result
+
         if (command == "stats")
         {
+            //Print User stats
             Console.WriteLine("Player's Attack: "+ Player.ATK);
             Console.WriteLine("Player's Defence: "+ Player.DEF);
             Console.WriteLine("Player's Health: "+ Player.HP);
         }
         else if (command == "move")
         {
+            //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
             command = Console.ReadLine();
             switch (command)
@@ -189,6 +225,7 @@ public class Game
         }
 
         UpdatePlayPosition();
+        
         //Loop the game to ask user again
         Game_Loop();
     }
