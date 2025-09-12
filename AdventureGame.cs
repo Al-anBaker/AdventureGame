@@ -200,10 +200,6 @@ public class Game
             Console.WriteLine("Player's Attack: "+ Player.ATK);
             Console.WriteLine("Player's Defence: "+ Player.DEF);
             Console.WriteLine("Player's Health: "+ Player.HP);
-
-            Console.WriteLine("Player's Attack: " + Player.ATK);
-            Console.WriteLine("Player's Defence: " + Player.DEF);
-            Console.WriteLine("Player's Health: " + Player.HP);
         }
         else if (command == "move")
         {
