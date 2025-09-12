@@ -9,11 +9,11 @@ The Player has 4 Directions to move in the 5x5 grid
 
 # Map Legend:
 
-"@" is the Player.
-"%" is an Enemy.
-"░" is an Empty Space.
-"█" is an unmoveable wall.
-"C" is a Chest (TODO add functionallity)
-"L" is Lava (TODO add functionallity)
-"║" is a Door (TODO add functionallity)
+* "@" is the Player.
+* "%" is an Enemy.
+* "░" is an Empty Space.
+* "█" is an unmoveable wall.
+* "C" is a Chest (TODO add functionallity)
+* "L" is Lava (TODO add functionallity)
+* "║" is a Door (TODO add functionallity)
 
