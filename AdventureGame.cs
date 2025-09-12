@@ -7,16 +7,16 @@ public class Character
     public string token = "@";
 
     //Where the Player is loacated on the map on x axis
-    public int x = 2;
+    public int x = 7;
 
     //Where the Player will be located once position is updated on x axis
-    public int dx = 2;
+    public int dx = 7;
 
     //Where the Player is loacated on the map on y axis
-    public int y = 2;
+    public int y = 13;
 
     //Where the Player will be located once position is updated on y axis
-    public int dy = 2;
+    public int dy = 13;
 
     //If the Character Object is a NPC
     public bool NPC = false;
@@ -37,7 +37,15 @@ public class Game
     public static string command = "";
 
     //Empty Tile
-    public static string empty = ".";
+    public static string empty = "░";
+
+    public static string wall = "█";
+
+    public static string chest = "C";
+
+    public static string lava = "L";
+
+    public static string door = "║";
 
     //If the Player was the last to move
     public static bool playerLastMove = true;
@@ -51,11 +59,21 @@ public class Game
     //Game Map
     public static string[,] game_map =
     {
-        { empty, empty, empty, empty, empty },
-        { empty, empty, empty, empty, empty },
-        { empty, empty, empty, empty, empty },
-        { empty, empty, empty, empty, empty },
-        { empty, empty, empty, empty, empty }
+{wall, wall, wall, wall, wall, wall, wall, door, wall, wall, wall, wall, wall, wall, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, chest, empty, empty, empty, empty, empty, empty, empty, empty, empty, lava, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
+{wall, wall, wall, wall, wall, wall, wall, door, wall, wall, wall, wall, wall, wall, wall}
     };
 
     //Main Game Loop
@@ -94,9 +112,17 @@ public class Game
         {
             Combat();
         }
+
         //Else run through normal
         else
         {
+            if (game_map[Player.dy, Player.dx] == wall)
+            {
+                Console.WriteLine("Unable to move there wall in the way!");
+                Player.dx = Player.x;
+                Player.dy = Player.y;
+                Game_Loop();
+            }
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
             //Deletes the player Token from the old position
@@ -112,8 +138,8 @@ public class Game
     public static void InitaliseFoes()
     {
         //Enemy's Base Position
-        Enemy.x = 2;
-        Enemy.y = 0;
+        Enemy.x = 7;
+        Enemy.y = 2;
 
         //Enemy's Token
         Enemy.token = "%";
