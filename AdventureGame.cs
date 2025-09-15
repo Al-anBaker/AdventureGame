@@ -123,8 +123,10 @@ public class Game
                 Player.dy = Player.y;
                 Game_Loop();
             }
+
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
+
             //Deletes the player Token from the old position
             game_map[Player.y, Player.x] = empty;
             //Sets the Players current Position to the Delta Versions
@@ -213,13 +215,15 @@ public class Game
             game_map[Enemy.y, Enemy.x] = empty;
         }
 
+
+        string key = Convert.ToString(Console.ReadKey());
         //Ask the Player what command they want to go in
         Console.WriteLine("Do you want to look at stats or move: ");
-
+        
         //Sets the command for the users input
         command = Console.ReadLine();
 
-        if (command == "stats")
+        if ((command == "stats") || (key == "S"))
         {
 
             //Print User stats
@@ -227,11 +231,30 @@ public class Game
             Console.WriteLine("Player's Defence: "+ Player.DEF);
             Console.WriteLine("Player's Health: "+ Player.HP);
         }
+
+        else if ((key == "RightArrow") || (key == "LeftArrow") || (key == "UpArrow") || (key == "DownArrow"))
+        {
+            switch (key)
+            {
+                case "UpArrow":
+                    Player.dy -= 1;
+                    break;
+                case "DownArrow":
+                    Player.dy += 1;
+                    break;
+                case "LeftArrow":
+                    Player.dx -= 1;
+                    break;
+                case "RightArrow":
+                    Player.dx += 1;
+                    break;
+            }
+        }
         else if (command == "move")
         {
             //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
-            command = Console.ReadLine();
+
             switch (command)
             {
                 case "north":
