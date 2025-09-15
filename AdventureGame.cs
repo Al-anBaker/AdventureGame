@@ -35,8 +35,6 @@ public class Character
 public class Game
 {
 
-    //Bool here to enable or disable KeyControl
-    bool InputType = true;
 
     //Direction player is going
     public static string command = "";
@@ -68,7 +66,7 @@ public class Game
     //Game Map
     public static string[,] game_map =
     {
-{wall, wall, wall, wall, wall, wall, wall, door, wall, wall, wall, wall, wall, wall, wall}, 
+{wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall}, 
 {wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
 {wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
 {wall, empty, chest, empty, empty, empty, empty, empty, empty, empty, empty, empty, lava, empty, wall}, 
@@ -82,7 +80,7 @@ public class Game
 {wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
 {wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
 {wall, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, wall}, 
-{wall, wall, wall, wall, wall, wall, wall, door, wall, wall, wall, wall, wall, wall, wall}
+{wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall, wall}
     };
 
 
@@ -90,19 +88,11 @@ public class Game
     public static void Main()
     {
 
-
-        //Tells User what InputType they are using
-        Console.WriteLine("TextControl is set to" + InputType);
-
-        //Asks user to Change based on if they want to type or use arrow keys to move
-        Console.WriteLine("Type (false) to Enable KeyControl or (true) to Enable TextControl: ");
-        InputType = Convert.ToBool(Console.ReadLine());
-
         //Sets Enemies Stats
         InitaliseFoes();
 
         //Sets Characters to Inital Places
-        UpdatePlayPosition();
+        UpdatePositions();
 
         //Starts the Main Game Loop
         Game_Loop();
@@ -125,7 +115,7 @@ public class Game
     }
 
     //Update Player Position when this is called
-    public static void UpdatePlayPosition()
+    public static void UpdatePositions()
     {
         //If the Enemy's HP is = 0 or less that 0 then remove the Enemy and set it to empty
         if (Enemy.HP <= 0)
@@ -149,17 +139,28 @@ public class Game
                 Player.dy = Player.y;
                 Game_Loop();
             }
+            else if (game_map[Enemy.dy, Enemy.dx] == wall)
+            {
+                Enemy.dx = Enemy.x;
+                Enemy.dy = Enemy.y;
+                Game_Loop();
+            }
 
             //Places The Player Token at the new Position
             game_map[Player.dy, Player.dx] = game_map[Player.y, Player.x];
+            game_map[Enemy.dy, Enemy.dx] = game_map[Enemy.y, Enemy.x];
 
             //Deletes the player Token from the old position
             game_map[Player.y, Player.x] = empty;
+            game_map[Enemy.y, Enemy.x] = empty;
             //Sets the Players current Position to the Delta Versions
             Player.x = Player.dx;
             Player.y = Player.dy;
+            Enemy.x = Enemy.dx;
+            Enemy.y = Enemy.dy;
             //Sets the Player to where they are located
             game_map[Player.y, Player.x] = Player.token;
+            game_map[Enemy.y, Enemy.x] = Enemy.token;
         }
     }
 
@@ -168,6 +169,8 @@ public class Game
         //Enemy's Base Position
         Enemy.x = 7;
         Enemy.y = 2;
+        Enemy.dx = Enemy.x;
+        Enemy.dy = Enemy.y;
 
         //Enemy's Token
         Enemy.token = "%";
@@ -230,12 +233,13 @@ public class Game
     //Main Game Loop
     public static void Game_Loop()
     {
+        UpdatePositions();
         //Draws the Inital Game map
         Draw_Game();
         //Updates Players Position if they Moved
-        UpdatePlayPosition();
 
-        string key = Convert.ToString(Console.ReadKey());
+
+        playerLastMove = true;
         //Ask the Player what command they want to go in
         Console.WriteLine("Do you want to look at stats or move: ");
         
@@ -243,7 +247,7 @@ public class Game
         command = Console.ReadLine();
 
         //If user wants to look at stats 
-        if ((command == "stats") || (key == "S"))
+        if (command == "stats")
         {
 
             //Print User stats
@@ -252,28 +256,10 @@ public class Game
             Console.WriteLine("Player's Health: "+ Player.HP);
         }
 
-        //If user is using KeyControl then take KeyInput as a string and use those to move player
-        else if (InputType == false)
-        {
-            switch (key)
-            {
-                case "UpArrow":
-                    Player.dy -= 1;
-                    break;
-                case "DownArrow":
-                    Player.dy += 1;
-                    break;
-                case "LeftArrow":
-                    Player.dx -= 1;
-                    break;
-                case "RightArrow":
-                    Player.dx += 1;
-                    break;
-            }
-        }
+
 
         //Else if the user is using Text Control then use that instead
-        else if (command == "move" && (InputType == true))
+        else if (command == "move")
         {
             //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
@@ -294,11 +280,34 @@ public class Game
                     break;
             }
         }
-
-        //Reupdate Player Position based on the new Delta Values
-        UpdatePlayPosition();
-        
+        EnemyMove();
         //Loop the game to ask user again
         Game_Loop();
+    }
+
+
+    public static void EnemyMove()
+    {
+        playerLastMove = false;
+        Random rnd = new Random();
+        int aiMove;
+
+        aiMove = rnd.Next(0, 3);
+
+        switch (aiMove)
+        {
+            case 0:
+                Enemy.dy -= 1;
+                break;
+            case 1:
+                Enemy.dy += 1;
+                break;
+            case 2:
+                Enemy.dx -= 1;
+                break;
+            case 3:
+                Enemy.dx += 1;
+                break;
+        }
     }
 }
