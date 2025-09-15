@@ -31,20 +31,29 @@ public class Character
     public int HP = 10;
 }
 
+//Main Game
 public class Game
 {
+
+    //Bool here to enable or disable KeyControl
+    bool InputType = true;
+
     //Direction player is going
     public static string command = "";
 
     //Empty Tile
     public static string empty = "░";
 
+    //Wall Tile, essentally a solid object
     public static string wall = "█";
 
+    //Chest usually have hold in it or HP
     public static string chest = "C";
 
+    //TODO
     public static string lava = "L";
 
+    //TODO: will be able to move between rooms
     public static string door = "║";
 
     //If the Player was the last to move
@@ -76,9 +85,20 @@ public class Game
 {wall, wall, wall, wall, wall, wall, wall, door, wall, wall, wall, wall, wall, wall, wall}
     };
 
+
     //Main Game Loop
     public static void Main()
     {
+
+
+        //Tells User what InputType they are using
+        Console.WriteLine("TextControl is set to" + InputType);
+
+        //Asks user to Change based on if they want to type or use arrow keys to move
+        Console.WriteLine("Type (false) to Enable KeyControl or (true) to Enable TextControl: ");
+        InputType = Convert.ToBool(Console.ReadLine());
+
+        //Sets Enemies Stats
         InitaliseFoes();
 
         //Sets Characters to Inital Places
@@ -107,13 +127,19 @@ public class Game
     //Update Player Position when this is called
     public static void UpdatePlayPosition()
     {
+        //If the Enemy's HP is = 0 or less that 0 then remove the Enemy and set it to empty
+        if (Enemy.HP <= 0)
+        {
+            game_map[Enemy.y, Enemy.x] = empty;
+        }
+
         // If the Player is going to walk into the Enemy Call Combat instead
         if (game_map[Player.dy, Player.dx] == game_map[Enemy.y, Enemy.x])
         {
             Combat();
         }
 
-        //Else run through normal
+        //else run through normal
         else
         {
             if (game_map[Player.dy, Player.dx] == wall)
@@ -209,13 +235,6 @@ public class Game
         //Updates Players Position if they Moved
         UpdatePlayPosition();
 
-        //If the Enemy's HP is = 0 or less that 0 then remove the Enemy and set it to empty
-        if (Enemy.HP <= 0)
-        {
-            game_map[Enemy.y, Enemy.x] = empty;
-        }
-
-
         string key = Convert.ToString(Console.ReadKey());
         //Ask the Player what command they want to go in
         Console.WriteLine("Do you want to look at stats or move: ");
@@ -223,6 +242,7 @@ public class Game
         //Sets the command for the users input
         command = Console.ReadLine();
 
+        //If user wants to look at stats 
         if ((command == "stats") || (key == "S"))
         {
 
@@ -232,7 +252,8 @@ public class Game
             Console.WriteLine("Player's Health: "+ Player.HP);
         }
 
-        else if ((key == "RightArrow") || (key == "LeftArrow") || (key == "UpArrow") || (key == "DownArrow"))
+        //If user is using KeyControl then take KeyInput as a string and use those to move player
+        else if (InputType == false)
         {
             switch (key)
             {
@@ -250,11 +271,13 @@ public class Game
                     break;
             }
         }
-        else if (command == "move")
+
+        //Else if the user is using Text Control then use that instead
+        else if (command == "move" && (InputType == true))
         {
             //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
-
+            command = Console.ReadLine();
             switch (command)
             {
                 case "north":
@@ -272,6 +295,7 @@ public class Game
             }
         }
 
+        //Reupdate Player Position based on the new Delta Values
         UpdatePlayPosition();
         
         //Loop the game to ask user again
