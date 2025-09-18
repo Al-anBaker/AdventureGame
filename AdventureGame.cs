@@ -90,6 +90,13 @@ public class Game
     public static void Main()
     {
 
+        //Tells User what InputType they are using
+        Console.WriteLine("TextControl is set to" + InputType);
+
+        //Asks user to Change based on if they want to type or use arrow keys to move
+        Console.WriteLine("Type (false) to Enable KeyControl or (true) to Enable TextControl: ");
+        InputType = Convert.ToBool(Console.ReadLine());
+
         //Sets Enemies Stats
         InitaliseFoes();
 
@@ -114,8 +121,6 @@ public class Game
             //After a row has been completed print a new line to start the next row until the loop ends
             Console.WriteLine("");
         }
-        Console.WriteLine("Enemy X: "+ Enemy.x);
-        Console.WriteLine("Enemy Y: "+ Enemy.y);
     }
 
     //Update Player Position when this is called
@@ -242,6 +247,7 @@ public class Game
         Draw_Game();
         //Updates Players Position if they Moved
 
+        string key = Convert.ToString(Console.ReadKey());
 
         playerLastMove = true;
         //Ask the Player what command they want to go in
@@ -251,7 +257,7 @@ public class Game
         command = Console.ReadLine();
 
         //If user wants to look at stats 
-        if (command == "stats")
+        if ((command == "stats") || (key == "S"))
         {
 
             //Print User stats
@@ -260,10 +266,29 @@ public class Game
             Console.WriteLine("Player's Health: "+ Player.HP);
         }
 
+        //If user is using KeyControl then take KeyInput as a string and use those to move player
+        else if (InputType == false)
+        {
+            switch (key)
+            {
+                case "UpArrow":
+                    Player.dy -= 1;
+                    break;
+                case "DownArrow":
+                    Player.dy += 1;
+                    break;
+                case "LeftArrow":
+                    Player.dx -= 1;
+                    break;
+                case "RightArrow":
+                    Player.dx += 1;
+                    break;
+            }
+        }
 
 
         //Else if the user is using Text Control then use that instead
-        else if (command == "move")
+        else if ((command == "move") && (InputType == true)) 
         {
             //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
