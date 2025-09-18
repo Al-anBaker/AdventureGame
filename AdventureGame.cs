@@ -63,6 +63,8 @@ public class Game
     //Test Enemy object
     public static Character Enemy = new Character();
 
+    public static int lastMove = 0;
+
     //Game Map
     public static string[,] game_map =
     {
@@ -112,6 +114,8 @@ public class Game
             //After a row has been completed print a new line to start the next row until the loop ends
             Console.WriteLine("");
         }
+        Console.WriteLine("Enemy X: "+ Enemy.x);
+        Console.WriteLine("Enemy Y: "+ Enemy.y);
     }
 
     //Update Player Position when this is called
@@ -169,8 +173,8 @@ public class Game
         //Enemy's Base Position
         Enemy.x = 7;
         Enemy.y = 2;
-        Enemy.dx = Enemy.x;
-        Enemy.dy = Enemy.y;
+        Enemy.dx = 7;
+        Enemy.dy = 2;
 
         //Enemy's Token
         Enemy.token = "%";
@@ -263,8 +267,8 @@ public class Game
         {
             //Switches based on where user wants to go and adjusts the Delta Position depending on the result
             Console.WriteLine("north, south, east, west: ");
-            command = Console.ReadLine();
-            switch (command)
+            string direction = Console.ReadLine();
+            switch (direction)
             {
                 case "north":
                     Player.dy -= 1;
@@ -281,33 +285,37 @@ public class Game
             }
         }
         EnemyMove();
-        //Loop the game to ask user again
-        Game_Loop();
     }
 
 
     public static void EnemyMove()
     {
+        
         playerLastMove = false;
         Random rnd = new Random();
         int aiMove;
 
         aiMove = rnd.Next(0, 3);
 
-        switch (aiMove)
+        if (aiMove == 0)
         {
-            case 0:
-                Enemy.dy -= 1;
-                break;
-            case 1:
-                Enemy.dy += 1;
-                break;
-            case 2:
-                Enemy.dx -= 1;
-                break;
-            case 3:
-                Enemy.dx += 1;
-                break;
+            Enemy.dy -= 1;
+            Game_Loop();
+        }
+        else if (aiMove == 1)
+        {
+            Enemy.dy += 1;
+            Game_Loop();
+        }
+        else if (aiMove == 2)
+        {
+            Enemy.dx -= 1;
+            Game_Loop();
+        }
+        else if (aiMove == 3)
+        {
+            Enemy.dx += 1;
+            Game_Loop();
         }
     }
 }
