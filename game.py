@@ -2,7 +2,7 @@ import random
 import os
 import re
 
-c_array = """
+map1_array = """
 {
 {
 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
@@ -25,10 +25,14 @@ c_array = """
 };
 """
 
+
+
 water = "~"
 empty = "░"
 lava = "L"
 wall = "█"
+door = ">"
+
 
 value_map = {
     "0xff000000": wall,
@@ -44,11 +48,12 @@ color_map = {
     lava: "\033[1;31mL\033[0m",
     "@": "\033[33m@\033[0m",    
     "%": "\033[35m%\033[0m",    
-    "C": "\033[32mC\033[0m"     
+    "C": "\033[32mC\033[0m",
+    ">": "\033[36m>\033[0m"  
 }
 
 
-values = re.findall(r'0x[0-9a-fA-F]+', c_array)
+values = re.findall(r'0x[0-9a-fA-F]+', map1_array)
 
 width = 16
 
@@ -58,7 +63,17 @@ for i in range(0, len(values), width):
     converted_row = [value_map[val.lower()] for val in row]
     python_grid.append(converted_row)
 
+maps = {
+    "map1": python_grid,
+    "map2": [
+        [wall]*16,
+        [wall] + [empty]*14 + [wall],
+        [wall] + [empty]*14 + [wall],
+        [wall]*16
+    ]
+}
 
+current_map = "map1"
 
 #Game Varibles
 command = ""
@@ -67,7 +82,10 @@ playerLastMove = True
 lastMove = 0
 
 #This is the Game Map in a List
-game_map = python_grid
+game_map = maps[current_map]
+
+maps["map1"][1][15] = door
+maps["map2"][1][0] = door
 
 
 def clear():
@@ -118,16 +136,16 @@ game_map[Chest.y][Chest.x] = Chest.token
 
 
 def Try_Move(character, dx, dy):
+    global game_map, current_map
     new_x = character.x + dx
     new_y = character.y + dy
+    tile = game_map[new_y][new_x]
+
 
     if not (0 <= new_y < len(game_map) and 0 <= new_x < len(game_map[0])):
         return False
     
-    if game_map[new_y][new_x] == wall:
-        return False
-    
-    if game_map[new_y][new_x] == water:
+    if tile in [wall, water]:
         return False
     
     if Player.x == Chest.x and Player.y == Chest.y:
@@ -140,8 +158,21 @@ def Try_Move(character, dx, dy):
         Chest.y = -1
         return True
     
+
     character.x = new_x
     character.y = new_y
+
+    if tile == door:
+        if current_map == "map1":
+            current_map = "map2"
+            character.x, character.y = 1, 1
+            Foe.x, Foe.y = 2, 2
+        else:
+            current_map = "map1"
+            character.x, character.y = 14, 1
+            Foe.x, Foe.y = 2, 2  
+        game_map = maps[current_map]
+        return True
     return True
 
 #Update_Positions moves the Chracters to their Delta Positions
@@ -150,8 +181,6 @@ def Update_Positions():
         for x in range(len(game_map[0])):
             if game_map[y][x] in [Player.token, Foe.token, Chest.token]:
                 game_map[y][x] = empty if (x, y) != (Chest.x, Chest.y) else Chest.token
-
-    
 
     if Foe.HP > 0:
         game_map[Foe.y][Foe.x] = Foe.token
