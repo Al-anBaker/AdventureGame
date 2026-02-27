@@ -2,6 +2,38 @@
 import random
 import os
 import re
+import time
+import sys
+
+
+if os.name == "nt":
+    import msvcrt
+    def get_key():
+        key = msvcrt.getch()
+        if key in [b'w', b'W']:
+            return 'w'
+        elif key in [b's', b'S']:
+            return 's'
+        elif key in [b'a', b'A']:
+            return 'a'
+        elif key in [b'd', b'D']:
+            return 'd'
+        elif key in [b'q', b'Q']:
+            return 'q'
+        return None
+else:
+    import tty, termios
+    def get_key():
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            key = sys.stdin.read(1)
+            if key.lower() in ['w', 'a', 's', 'd', 'q']:
+                return key.lower()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return None
 
 
 #Main Map Defenition
@@ -241,7 +273,10 @@ def Game_Loop():
         Draw_Game()
         Combat()
         playerLastMove = True
-        command = input("WASD to move | Q quit: ").lower()
+        command = None
+        while command is None:
+            command = get_key()
+            time.sleep(0.01)
 
         if command == "w":
             Try_Move(Player, 0, -1)
