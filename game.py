@@ -134,6 +134,15 @@ def Draw_Game():
 
 game_map[Chest.y][Chest.x] = Chest.token
 
+def Combat():
+    if abs(Player.x-Foe.x)+abs(Player.y-Foe.y)==1 and Foe.HP>0:
+        if Player.ATK>Foe.DEF:
+            Foe.HP -= 1
+            print("Hit Foe for 1 damage!")
+        if Foe.ATK>Player.DEF:
+            Player.HP -= 1
+            print("Foe hits you for 1 damage!")
+
 
 def Try_Move(character, dx, dy):
     global game_map, current_map
@@ -208,7 +217,7 @@ def Game_Loop():
         clear()
         Print_Stats()
         Draw_Game()
-
+        Combat()
         playerLastMove = True
         command = input("WASD to move | Q quit: ").lower()
 
