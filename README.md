@@ -14,4 +14,5 @@ You control the Player with WASD using prompts in the console
 * "█" is an unmoveable wall.
 * "C" is a Chest.
 * "~" is Water.
+* ">" is a Door.
 

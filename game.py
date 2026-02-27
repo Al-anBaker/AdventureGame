@@ -1,7 +1,10 @@
+#Imports
 import random
 import os
 import re
 
+
+#Main Map Defenition
 map1_array = """
 {
 {
@@ -26,7 +29,7 @@ map1_array = """
 """
 
 
-
+#Map Tile sets, these are the token for static Tiles on the map
 water = "~"
 empty = "░"
 lava = "L"
@@ -34,6 +37,7 @@ wall = "█"
 door = ">"
 
 
+#For the Regex this replaces the Hex codes with the varble name for the Tiles on the map
 value_map = {
     "0xff000000": wall,
     "0xffff0000": water,
@@ -41,6 +45,7 @@ value_map = {
     "0xff0000ff": lava
 }
 
+#In Colour Map we asign colours to each of the Tiles using ANSI codes this helps with making the game look better
 color_map = {
     wall: "\033[1;37m█\033[0m",
     empty: "\033[0;30m░\033[0m",
@@ -52,7 +57,7 @@ color_map = {
     ">": "\033[36m>\033[0m"  
 }
 
-
+#Here we are generating the map based on the C Array provided
 values = re.findall(r'0x[0-9a-fA-F]+', map1_array)
 
 width = 16
@@ -73,35 +78,40 @@ maps = {
     ]
 }
 
-current_map = "map1"
+
 
 #Game Varibles
 command = ""
-
+current_map = "map1"
 playerLastMove = True
-lastMove = 0
 
-#This is the Game Map in a List
+#Here we set the Game Map to the first Map
 game_map = maps[current_map]
 
+#Add Doors so the Player can move between maps
 maps["map1"][1][15] = door
 maps["map2"][1][0] = door
 
 
+#System Method allows up to clear the console to make the game feel more real
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
+
+#Class Definitions
+    #The Item Class right now is resposible for Stat Boosts, this is a Class so make scailability easier
 class Item():
-    def __init__(self, token, item, x, y):
+    def __init__(self, token, item, x, y, active):
         self.token = token
         self.item = item
         self.x = x
         self.y = y
+        self.active = active
 
 #The Character Class is here to both avoid dulicated code with the Foe and makes it easy to add new Characters to the map
 class Character():
     #Character Vars
-    def __init__(self, token, x, y, NPC, ATK, DEF, HP):
+    def __init__(self, token, x, y, NPC, ATK, DEF, HP, current_map):
 
         #token is how the character looks on the Map
         self.token = token
@@ -118,12 +128,18 @@ class Character():
         self.DEF = DEF
         self.HP = HP
 
+        self.current_map = current_map
+
 #Here we initilise the two current characters with their attrbutes
-Player = Character("@", 7, 13, False, 5, 5, 10)
+Player = Character("@", 7, 13, False, 5, 5, 10, "map1")
 
-Foe = Character("%", 2, 2, True, 0, 0, 2)
+Foe = Character("%", 2, 2, True, 0, 0, 2, "map1")
 
-Chest = Item("C", "Chest", 7, 10)
+#And here we initalise the Item Object
+Chest = Item("C", "Chest", 13, 1, False)
+
+Chest.x, Chest.y = 13, 1
+maps["map2"][Chest.y][Chest.x] = Chest.token
 
 #Draw_Game prints the Map onto the console, we do this by interating through both the x axis and y axis 
 def Draw_Game():
@@ -132,9 +148,12 @@ def Draw_Game():
             print(color_map[tile], end="")
         print()
 
-game_map[Chest.y][Chest.x] = Chest.token
 
+#This Deals with PVE combat
 def Combat():
+    if Foe.current_map != current_map:
+        return
+
     if abs(Player.x-Foe.x)+abs(Player.y-Foe.y)==1 and Foe.HP>0:
         if Player.ATK>Foe.DEF:
             Foe.HP -= 1
@@ -143,7 +162,7 @@ def Combat():
             Player.HP -= 1
             print("Foe hits you for 1 damage!")
 
-
+#Try_Move replaces the old delta positions that were used previosly, this new system works better allowing for more expansion
 def Try_Move(character, dx, dy):
     global game_map, current_map
     new_x = character.x + dx
@@ -157,7 +176,7 @@ def Try_Move(character, dx, dy):
     if tile in [wall, water]:
         return False
     
-    if Player.x == Chest.x and Player.y == Chest.y:
+    if current_map == "map2" and Player.x == Chest.x and Player.y == Chest.y:
         game_map[Chest.y][Chest.x] = empty
         Player.ATK += 5
         Player.DEF += 2
@@ -171,31 +190,31 @@ def Try_Move(character, dx, dy):
     character.x = new_x
     character.y = new_y
 
-    if tile == door:
+    if tile == door and character == Player:
         if current_map == "map1":
             current_map = "map2"
-            character.x, character.y = 1, 1
-            Foe.x, Foe.y = 2, 2
+            Player.x, Player.y = 1, 1
         else:
             current_map = "map1"
             character.x, character.y = 14, 1
-            Foe.x, Foe.y = 2, 2  
         game_map = maps[current_map]
         return True
     return True
 
-#Update_Positions moves the Chracters to their Delta Positions
+#Update_Positions Deletes the old characters
 def Update_Positions():
     for y in range(len(game_map)):
         for x in range(len(game_map[0])):
-            if game_map[y][x] in [Player.token, Foe.token, Chest.token]:
-                game_map[y][x] = empty if (x, y) != (Chest.x, Chest.y) else Chest.token
+            # Only erase Player and Foe, leave other map objects intact
+            if game_map[y][x] in [Player.token, Foe.token]:
+                game_map[y][x] = empty
 
-    if Foe.HP > 0:
+    if Foe.HP > 0 and Foe.current_map == current_map:
         game_map[Foe.y][Foe.x] = Foe.token
     game_map[Player.y][Player.x] = Player.token
 
 
+#Show the Player's Stats at the top of the screen
 def Print_Stats():
     print("Defence: "+ str(Player.DEF))
     print("Attack: "+ str(Player.ATK))
@@ -203,6 +222,8 @@ def Print_Stats():
 
 #This is to move the NPC
 def Foe_Move():
+    if Foe.current_map != current_map:
+        return
     aiMove = random.randrange(0, 4)
     if aiMove == 0: Try_Move(Foe, 0, -1)   # up
     elif aiMove == 1: Try_Move(Foe, 0, 1)  # down
