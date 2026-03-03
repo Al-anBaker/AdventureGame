@@ -1,11 +1,12 @@
 # AdventureGame
 This is a Python CLI based Rouge-Like tech demo.
-You control the Player with WASD using prompts in the console
+You control the Player with WASD using prompts in the console.
+There is now basic Progedrally generated levels in the game, after leaving the Entrance
 
 # TODO:
 1. Add enemies into the game, and make the map bigger
 2. Add inventory and Attack system
-3. Add rooms, and a more interesting Map 
+3. Replace current basic generation system with a corridor room based system
 
 # Map Legend:
 * "@" is the Player.

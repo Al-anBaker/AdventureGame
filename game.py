@@ -69,6 +69,8 @@ wall = "█"
 door = ">"
 
 
+dungeon_level = 0
+
 #For the Regex this replaces the Hex codes with the varble name for the Tiles on the map
 value_map = {
     "0xff000000": wall,
@@ -144,34 +146,98 @@ class Character():
         self.current_map = current_map
 
 class GameMap:
-    def __init__(self, name, grid):
+    def __init__(self, name, grid=None, width=None, height=None):
         self.name = name
-        self.grid = grid
         self.entities = []
         self.doors = []
 
+        if grid is not None:
+            self.grid = grid
+            self.height = len(grid)
+            self.width = len(grid[0])
+
+        elif width is not None and height is not None:
+           self.width = width
+           self.height = height
+           self.grid = self.generate_procedural_map()
+
+        else:
+            raise ValueError("Must provide either grid OR width and Height")
+        
+    def generate_procedural_map(self):
+        grid = []
+
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+
+                if x == 0 or y ==0 or x == self.width-1 or y == self.height-1:
+                    row.append(wall)
+                else:
+                    roll = random.random()
+
+                    if roll < 0.05:
+                        row.append(water)
+                    else:
+                        row.append(empty)
+            grid.append(row)
+
+        while True:
+            x = random.randint(1, self.width-2)
+            y = random.randint(1, self.height-2)
+            if grid[y][x] == empty:
+                grid[y][x] = door
+                break 
+        return grid
+    
+
+    
     def add_entity(self, entity):
         entity.current_map = self
         self.entities.append(entity)
 
-    def add_door(self, x, y):
-        self.grid[y][x] = door
-        self.doors.append((x, y))
+    def remove_entity(self, entity):
+        if entity in self.entities:
+            self.entities.remove(entity)
 
+    def add_door(self, x, y):
+        if 0 <= y < self.height and 0 <= x < self.width:
+            self.grid[y][x] = door
+            self.doors.append((x, y))
+
+    def is_walkable(self, x, y):
+        if not (0 <= y < self.height and 0 <= x < self.width):
+            return False
+        
+        if self.grid[y][x] in [wall, water]:
+            return False
+        
+        for entity in self.entities:
+            if entity.x == x and entity.y == y:
+                return False
+            
+        return True
+    
     def draw(self):
-        for y, row in enumerate(self.grid):
-            for x, tile in enumerate(row):
-                entity_here = next((e.token for e in self.entities if e.x == x and e.y == y and e.current_map == self), None)
+        for y in range(self.height):
+            for x in range(self.width):
+                entity_here = next(
+                    (e.token for e in self.entities
+                     if e.x == x and e.y == y and e.current_map == self), None
+                )
+
                 if entity_here:
                     print(color_map[entity_here], end="")
                 else:
-                    print(color_map[tile], end="")
-            print()
+                    print(color_map[self.grid[y][x]], end="")
 
+            print()
+    
     def enter_map(self, player, x, y):
         player.x = x
         player.y = y
         player.current_map = self
+
         global current_map
         current_map = self
 
@@ -191,6 +257,7 @@ Map2 = GameMap("map2", map2_grid)
 
 Map1.add_door(15,1)
 Map2.add_door(0,1)
+Map2.add_door(14, 2)
 
 #Here we initilise the two current characters with their attrbutes
 Player = Character("@", 7, 13, False, 5, 5, 5)
@@ -221,7 +288,7 @@ def Combat():
 
 #Try_Move replaces the old delta positions that were used previosly, this new system works better allowing for more expansion
 def Try_Move(character, dx, dy):
-    global current_map
+    global dungeon_level, current_map
     new_x = character.x + dx
     new_y = character.y + dy
 
@@ -233,26 +300,60 @@ def Try_Move(character, dx, dy):
     if tile in [wall, water]:
         return False
 
-    if current_map == Map2 and Player.x == Chest.x and Player.y == Chest.y:
-        current_map[Chest.y][Chest.x] = empty  # remove the chest from the map
-        Player.ATK += 5
-        Player.DEF += 2
-        Player.HP += 2
-        print("Player has found a lost item! Stats are improved!")
-        Chest.x = -1  # deactivate the chest
-        Chest.y = -1
-        Chest.active = False
-        return True
+    if current_map == Map2 and Chest.active:
+        if character.x == Chest.x and character.y == Chest.y:
+            Player.ATK += 5
+            Player.DEF += 2
+            Player.HP += 2
+            print("Player has found a lost item! Stats are Improved!")
+            time.sleep(1)
+
+            Chest.active = False
+            current_map.entities.remove(Chest)
     
     character.x = new_x
     character.y = new_y
 
     if tile == door and character == Player:
-        if current_map == Map1:
+
+        if current_map.name == "map1":
             Map2.enter_map(Player, 1, 1)
-        else:
-            Map1.enter_map(Player, 14, 1)
-    return True
+
+        elif current_map.name == "map2":
+
+            if new_x == 0 and new_y == 1:
+                Map1.enter_map(Player, 14, 1)
+
+            else:
+                dungeon_level = 1
+
+                new_floor = GameMap(
+                    f"Dungeon {dungeon_level}",
+                    width = 30,
+                    height= 15
+                )
+
+                Player.x = 1
+                Player.y = 1
+
+                new_floor.add_entity(Player)
+                current_map = new_floor
+
+        elif current_map.name.startswith("Dungeon"):
+
+            dungeon_level += 1
+
+            new_floor = GameMap(
+                f"Dungeon {dungeon_level}",
+                width=30,
+                height=15
+            )
+            
+            Player.x = 1
+            Player.y = 1
+
+            new_floor.add_entity(Player)
+            current_map = new_floor
 
 #This is to move the NPC
 def Foe_Move():
@@ -263,6 +364,11 @@ def Foe_Move():
 #Show the Player's Stats at the top of the screen
 def Print_Stats():
     print(f"Defence: {Player.DEF} | Attack: {Player.ATK} | Health {Player.HP}")
+    if current_map.name.startswith("Dungeon"):
+        print(f"Dungeon Level: {dungeon_level}")
+    else:
+        print("Dungeon Level: Entrance")
+        
 
 #Here we have the main Game Loop
 def Game_Loop():
