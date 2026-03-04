@@ -673,6 +673,8 @@ def Inventory():
 def Print_Controls():
     print("WASD to Move | Q to Quit | E to open Inventory")
 
+os.system("cls" if os.name == "nt" else "clear")
+
 #Here we have the main Game Loop
 def Game_Loop():
     global playerLastMove
