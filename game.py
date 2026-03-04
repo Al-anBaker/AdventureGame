@@ -91,7 +91,10 @@ color_map = {
     "[": "\033[32m[\033[0m",
     "/": "\033[32m/\033[0m",
     "!": "\033[32m!\033[0m",
-    ">": "\033[36m>\033[0m"  
+    ">": "\033[36m>\033[0m",
+    "g": "\033[31mg\033[0m",
+    "o": "\033[31mo\033[0m",
+    "D": "\033[1;31mD\033[0m"  
 }
 
 def parse_map(array_str, width = 16):
@@ -205,6 +208,7 @@ class GameMap:
             self.height = height
             self.grid = self.generate_procedural_map()
             self.spawn_random_items()
+            self.spawn_foes()
 
         else:
             raise ValueError("Invalid GameMap initialization")
@@ -258,6 +262,42 @@ class GameMap:
             player.x = x
             player.y = y
         self.add_entity(player)
+
+    def spawn_foes(self):
+
+        if not hasattr(self, "rooms"):
+            return
+        
+        base_count = random.randint(3, 6)
+
+        for _ in range(base_count):
+            room = random.choice(self.rooms)
+
+            spawn_room = self.rooms[0]
+            if room == spawn_room:
+                continue
+
+            rx, ry, rw, rh = room
+
+            x = random.randint(rx + 1, rx + rw - 2)
+            y = random.randint(ry + 1, ry + rh - 2)
+
+            if self.grid[y][x] != empty:
+                continue
+            if any(e.x == x and e.y == y for e in self.entities):
+                continue
+
+            roll = random.random()
+
+            if roll < 0.6:
+                foe = Character("g", x, y, True, 2, 1 , 4)
+            elif roll < 0.9:
+                foe = Character("o", x, y, True, 3, 2, 6)
+            else:
+                foe = Character("D", x, y, True, 5, 3, 10)
+
+            self.add_entity(foe)
+    
 
     def add_door(self, x, y):
         self.grid[y][x] = door
@@ -457,12 +497,10 @@ Map2.add_door(14, 2)
 
 #Here we initilise the two current characters with their attrbutes
 Player = Character("@", 7, 13, False, 5, 5, 5)
-Foe = Character("%", 2, 2, True, 0, 0, 2)
 
 
 #And we add them to each maps Entity List
 Map1.add_entity(Player)
-Map1.add_entity(Foe)
 
 #Set the current Map to Map1 for the first level
 current_map = Map1
@@ -473,15 +511,34 @@ def Draw_Game():
 
 #This Deals with PVE combat
 def Combat():
-    if Foe.current_map != current_map:
-        return
-    if abs(Player.x-Foe.x)+abs(Player.y-Foe.y)==1 and Foe.HP>0:
-        if Player.ATK>Foe.DEF:
-            Foe.HP -= 1
-            print("Hit Foe for 1 damage!")
-        if Foe.ATK>Player.DEF:
-            Player.HP -= 1
-            print("Foe hits you for 1 damage!")
+
+    for entity in current_map.entities[:]:
+
+        # Only process Characters
+        if not isinstance(entity, Character):
+            continue
+
+        # Only process enemies
+        if not entity.NPC:
+            continue
+
+        if entity.HP <= 0:
+            continue
+
+        # Check if adjacent to player
+        if abs(Player.x - entity.x) + abs(Player.y - entity.y) == 1:
+
+            if Player.ATK > entity.DEF:
+                entity.HP -= 1
+                print("You hit the foe!")
+
+            if entity.ATK > Player.DEF:
+                Player.HP -= 1
+                print("The foe hits you!")
+
+            if entity.HP <= 0:
+                current_map.entities.remove(entity)
+                print("Foe defeated!")
 
 #Try_Move is responisble for moving the Player and handling Player and Entity Interaction
 def Try_Move(character, dx, dy):
@@ -497,6 +554,12 @@ def Try_Move(character, dx, dy):
     if tile in [wall, water]:
         return False
     
+    # Block walking into enemies
+    for entity in current_map.entities:
+        if isinstance(entity, Character) and entity.NPC:
+            if entity.NPC and entity.x == new_x and entity.y == new_y:
+                return False
+
     character.x = new_x
     character.y = new_y
 
@@ -543,11 +606,15 @@ def Try_Move(character, dx, dy):
 
 #This is to move the NPC
 def Foe_Move():
-    if Foe.current_map != current_map:
-        return
-    move = random.choice([(0, -1),(0, 1), (-1, 0), (1,0)])
-    Try_Move(Foe, *move)
 
+    for entity in current_map.entities:
+
+        if isinstance(entity, Character) and entity.NPC:
+
+            move = random.choice([(0, -1),(0, 1), (-1, 0), (1,0)])
+            Try_Move(entity, *move)
+
+    
 #Show the Player's Stats at the top of the screen and what floor they are on
 def Print_Stats():
     print(f"Defence: {Player.DEF} | Attack: {Player.ATK} | Health {Player.HP}")
