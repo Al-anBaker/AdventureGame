@@ -191,7 +191,7 @@ class GameMap:
     def add_door(self, x, y):
         self.grid[y][x] = door
 
-    def update_visibility(self, player, radius=8):
+    def update_visibility(self, player, radius=6):
         # Clear current visibility
         for y in range(self.height):
             for x in range(self.width):
@@ -459,7 +459,7 @@ def Try_Move(character, dx, dy):
                 new_floor = GameMap(
                     f"Dungeon {dungeon_level}",
                     width = 55,
-                    height= 15
+                    height= 20
                 )
                 new_floor.enter_map(Player, 1, 1)
 
@@ -470,7 +470,7 @@ def Try_Move(character, dx, dy):
             new_floor = GameMap(
                 f"Dungeon {dungeon_level}",
                 width=55,
-                height=15
+                height=20
             )
             new_floor.enter_map(Player, 1, 1)
 
