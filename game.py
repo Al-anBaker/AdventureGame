@@ -20,6 +20,10 @@ if os.name == "nt":
             return 'd'
         elif key in [b'q', b'Q']:
             return 'q'
+        elif key in [b'e', b'E']:
+            return 'e'
+        elif key in [b'u', b'U']:
+            return 'u'
         return None
 #However if the USers System is Unix based it will use tty and termios to get Keyboard input
 else:
@@ -30,7 +34,7 @@ else:
         try:
             tty.setraw(fd)
             key = sys.stdin.read(1)
-            if key.lower() in ['w', 'a', 's', 'd', 'q']:
+            if key.lower() in ['w', 'a', 's', 'd', 'q', 'e', 'u']:
                 return key.lower()
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -65,7 +69,6 @@ map1_array = """
 #Map Tile sets, these are the token for static Tiles on the map
 water = "~"
 empty = "░"
-lava = "L"
 wall = "█"
 door = ">"
 
@@ -76,7 +79,6 @@ value_map = {
     "0xff000000": wall,
     "0xffff0000": water,
     "0x00000000": empty,
-    "0xff0000ff": lava
 }
 
 #In Colour Map we asign colours to each of the Tiles using ANSI codes this helps with making the game look better
@@ -84,12 +86,14 @@ color_map = {
     wall: "\033[1;37m█\033[0m",
     empty: "\033[0;30m░\033[0m",
     water: "\033[0;34m~\033[0m",
-    lava: "\033[1;31mL\033[0m",
     "@": "\033[33m@\033[0m",    
     "%": "\033[35m%\033[0m",    
-    "C": "\033[32mC\033[0m",
+    "[": "\033[32m[\033[0m",
+    "/": "\033[32m/\033[0m",
+    "!": "\033[32m!\033[0m",
     ">": "\033[36m>\033[0m"  
 }
+
 def parse_map(array_str, width = 16):
     #Here we are generating the map based on the C Array provided
     clean_str = re.sub(r'[\{\}\s]', '', array_str)
@@ -116,11 +120,15 @@ def clear():
 #Class Definitions
     #The Item Class right now is resposible for Stat Boosts, this is a Class so make scailability easier
 class Item():
-    def __init__(self, token, item, x, y, active=True):
+    def __init__(self, token, name, x, y, item_type, atk=0, defn=0, hp=0, active=True):
         self.token = token
-        self.item = item
+        self.name = name
         self.x = x
         self.y = y
+        self.type = item_type
+        self.atk = atk
+        self.defn = defn
+        self.hp = hp
         self.active = active
 
 #The Character Class is here to both avoid dulicated code with the Foe and makes it easy to add new Characters to the map
@@ -145,6 +153,40 @@ class Character():
 
         self.current_map = current_map
 
+        self.inventory = []
+
+        self.weapon = None
+        self.armour = None
+
+    def pickup_item(self, item):
+        self.inventory.append(item)
+
+    def equip_item(self, item):
+        if item.type == "weapon":
+            if self.weapon:
+                self.ATK -= self.weapon.atk
+            self.weapon = item
+            self.ATK += item.atk
+
+        elif item.type == "armour":
+            if self.armour:
+                self.DEF -= self.armour.defn
+            self.armour = item
+            self.DEF += item.defn
+
+    def unequip_item(self, slot):
+        if slot == "weapon" and self.weapon:
+            self.ATK -= self.weapon.atk
+            self.weapon = None
+        elif slot == "armour" and self.armour:
+            self.DEF -= self.armour.defn
+            self.armour = None
+
+    def use_potion(self, item):
+        self.HP += item.hp
+        if self.HP > 20:
+            self.HP = 20
+
 #GameMap is an Object that holds the current Maps name, grid and its dimensions, it is also respoonsible in adding doors and entities
 class GameMap:
     def __init__(self, name, grid=None, width=None, height=None):
@@ -162,6 +204,7 @@ class GameMap:
             self.width = width
             self.height = height
             self.grid = self.generate_procedural_map()
+            self.spawn_random_items()
 
         else:
             raise ValueError("Invalid GameMap initialization")
@@ -177,6 +220,34 @@ class GameMap:
     def add_entity(self, entity):
         self.entities.append(entity)
         entity.current_map = self
+
+    def spawn_random_items(self):
+        if not hasattr(self, "rooms"):
+            return
+        
+        item_count = random.randint(2, 5)
+
+        for _ in range(item_count):
+            room = random.choice(self.rooms)
+
+            rx, ry, rw, rh = room
+
+            x = random.randint(rx + 1, rx + rw - 2)
+            y = random.randint(ry + 1, ry + rh - 2)
+
+            if self.grid != empty:
+                continue
+        
+        roll = random.random()
+
+        if roll < 0.4:
+            item = Item("!", "Health Potion", x, y, item_type="potion", hp=5)
+        elif roll < 0.7:
+            item = Item("/", "Dagger", x, y, item_type="weapon", atk=2)
+        else:
+            item = Item("[", "Leather Armour", x, y, item_type="armour", defn=2)
+
+        self.entities.append(item)
 
     def enter_map(self, player, x, y):
         global current_map
@@ -364,7 +435,7 @@ class GameMap:
             door_x += 1
 
         grid[door_y][door_x] = door
-
+        self.rooms = rooms
         return grid
 #Here we generate the first 2 entrance levels 
 map1_grid = parse_map(map1_array)
@@ -387,12 +458,11 @@ Map2.add_door(14, 2)
 #Here we initilise the two current characters with their attrbutes
 Player = Character("@", 7, 13, False, 5, 5, 5)
 Foe = Character("%", 2, 2, True, 0, 0, 2)
-Chest = Item("C", "Chest", 13, 1)
+
 
 #And we add them to each maps Entity List
 Map1.add_entity(Player)
 Map1.add_entity(Foe)
-Map2.add_entity(Chest)
 
 #Set the current Map to Map1 for the first level
 current_map = Map1
@@ -427,20 +497,16 @@ def Try_Move(character, dx, dy):
     if tile in [wall, water]:
         return False
     
-    #Here if the Player encounters an Active Chest they will pick it up and have their stats improved
-    if current_map == Map2 and Chest.active:
-        if character.x == Chest.x and character.y == Chest.y:
-            Player.ATK += 5
-            Player.DEF += 2
-            Player.HP += 2
-            print("Player has found a lost item! Stats are Improved!")
-            time.sleep(1)
-
-            Chest.active = False
-            current_map.entities.remove(Chest)
-    
     character.x = new_x
     character.y = new_y
+
+    #Here if the Player encounters an Active Chest they will pick it up and have their stats improved
+    for entity in current_map.entities[:]:
+        if isinstance(entity, Item):
+            if entity.x == Player.x and entity.y == Player.y:
+                Player.pickup_item(entity)
+                current_map.entities.remove(entity)
+
 
     #This handles Player and Door Interation allowing for Players to move between Levels, and if needed Generate New Levels
     if tile == door and character == Player:
@@ -491,6 +557,55 @@ def Print_Stats():
         print("Dungeon Level: Entrance")
         
 
+def Inventory():
+    while True:
+        clear()
+        print("====== INVENTORY ======\n")
+
+        print(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}")
+        print(f"Armour: {Player.armour.name if Player.armour else 'None'}")
+
+        if not Player.inventory:
+            print("Inventory is empty")
+        else: 
+            for index, item in enumerate(Player.inventory):
+                letter = chr(ord('a') + index)
+                print(f"{letter}) {item.name}")
+
+        print("\nSelect item to equip/use")
+        print("U = Unequip Weapon")
+        print("I = Unequip Armour")
+        print("Q = Exit")
+
+        key = None
+        while key is None:
+            key = get_key()
+            time.sleep(0.01)
+
+        if key == 'q':
+            return
+        if key == 'u':
+            Player.unequip_item("weapon")
+            continue
+        if key == 'i':
+            Player.unequip_item("armour")
+            continue
+
+        if Player.inventory:
+            index = ord(key) - ord('a')
+            if 0 <= index < len(Player.inventory):
+                item = Player.inventory[index]
+
+                if item.type == "potion":
+                    Player.use_potion(item)
+                    Player.inventory.remove(item)
+                
+                else:
+                    Player.equip_item(item)
+
+def Print_Controls():
+    print("WASD to Move | Q to Quit | E to open Inventory")
+
 #Here we have the main Game Loop
 def Game_Loop():
     global playerLastMove
@@ -498,6 +613,7 @@ def Game_Loop():
         clear()
         Print_Stats()
         Draw_Game()
+        Print_Controls()
         Combat()
         playerLastMove = True
         command = None
@@ -515,5 +631,7 @@ def Game_Loop():
             Try_Move(Player, 1, 0)
         elif command == "q":
             quit()
+        elif command == "e":
+            Inventory()
         Foe_Move()
 Game_Loop()
