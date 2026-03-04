@@ -191,7 +191,7 @@ class GameMap:
     def add_door(self, x, y):
         self.grid[y][x] = door
 
-    def update_visibility(self, player, radius=6):
+    def update_visibility(self, player, radius=8):
         # Clear current visibility
         for y in range(self.height):
             for x in range(self.width):
