@@ -5,7 +5,7 @@ import re
 import time
 import sys
 
-
+#This first if-else statment checks to see what OS type the Player Has, if its an NT or Windows Based system it will import msvcrt to handle keyboard interaction
 if os.name == "nt":
     import msvcrt
     def get_key():
@@ -21,6 +21,7 @@ if os.name == "nt":
         elif key in [b'q', b'Q']:
             return 'q'
         return None
+#However if the USers System is Unix based it will use tty and termios to get Keyboard input
 else:
     import tty, termios
     def get_key():
@@ -69,7 +70,6 @@ wall = "█"
 door = ">"
 
 
-dungeon_level = 0
 
 #For the Regex this replaces the Hex codes with the varble name for the Tiles on the map
 value_map = {
@@ -103,10 +103,10 @@ def parse_map(array_str, width = 16):
 
 
 
-#Game Varibles
+#Global Varibles
 command = ""
 playerLastMove = True
-
+dungeon_level = 0
 
 #System Method allows up to clear the console to make the game feel more real
 def clear():
@@ -145,105 +145,228 @@ class Character():
 
         self.current_map = current_map
 
+#GameMap is an Object that holds the current Maps name, grid and its dimensions, it is also respoonsible in adding doors and entities
 class GameMap:
     def __init__(self, name, grid=None, width=None, height=None):
         self.name = name
         self.entities = []
-        self.doors = []
 
-        if grid is not None:
+        # Case 1: Static map passed in
+        if isinstance(grid, list):
             self.grid = grid
             self.height = len(grid)
             self.width = len(grid[0])
 
+        # Case 2: Procedural map requested
         elif width is not None and height is not None:
-           self.width = width
-           self.height = height
-           self.grid = self.generate_procedural_map()
+            self.width = width
+            self.height = height
+            self.grid = self.generate_procedural_map()
 
         else:
-            raise ValueError("Must provide either grid OR width and Height")
-        
-    def generate_procedural_map(self):
-        grid = []
+            raise ValueError("Invalid GameMap initialization")
 
-        for y in range(self.height):
-            row = []
-            for x in range(self.width):
+        self.visible = [[False for _ in range(self.width)]
+                        for _ in range(self.height)]
+        self.discovered = [[False for _ in range(self.width)]
+                           for _ in range(self.height)]
 
-                if x == 0 or y ==0 or x == self.width-1 or y == self.height-1:
-                    row.append(wall)
-                else:
-                    roll = random.random()
+    def __getitem__(self, index):
+        return self.grid[index]
 
-                    if roll < 0.05:
-                        row.append(water)
-                    else:
-                        row.append(empty)
-            grid.append(row)
-
-        while True:
-            x = random.randint(1, self.width-2)
-            y = random.randint(1, self.height-2)
-            if grid[y][x] == empty:
-                grid[y][x] = door
-                break 
-        return grid
-    
-
-    
     def add_entity(self, entity):
-        entity.current_map = self
         self.entities.append(entity)
+        entity.current_map = self
 
-    def remove_entity(self, entity):
-        if entity in self.entities:
-            self.entities.remove(entity)
-
-    def add_door(self, x, y):
-        if 0 <= y < self.height and 0 <= x < self.width:
-            self.grid[y][x] = door
-            self.doors.append((x, y))
-
-    def is_walkable(self, x, y):
-        if not (0 <= y < self.height and 0 <= x < self.width):
-            return False
-        
-        if self.grid[y][x] in [wall, water]:
-            return False
-        
-        for entity in self.entities:
-            if entity.x == x and entity.y == y:
-                return False
-            
-        return True
-    
-    def draw(self):
-        for y in range(self.height):
-            for x in range(self.width):
-                entity_here = next(
-                    (e.token for e in self.entities
-                     if e.x == x and e.y == y and e.current_map == self), None
-                )
-
-                if entity_here:
-                    print(color_map[entity_here], end="")
-                else:
-                    print(color_map[self.grid[y][x]], end="")
-
-            print()
-    
     def enter_map(self, player, x, y):
-        player.x = x
-        player.y = y
-        player.current_map = self
-
         global current_map
         current_map = self
+        if hasattr(self, "spawn_point") and self.spawn_point:
+            player.x, player.y = self.spawn_point
+        else:
+            player.x = x
+            player.y = y
+        self.add_entity(player)
 
-        if player not in self.entities:
-            self.entities.append(player)
+    def add_door(self, x, y):
+        self.grid[y][x] = door
 
+    def update_visibility(self, player, radius=8):
+        # Clear current visibility
+        for y in range(self.height):
+            for x in range(self.width):
+                self.visible[y][x] = False
+
+        px, py = player.x, player.y
+
+        # Bresenham line algorithm
+        def line(x0, y0, x1, y1):
+            points = []
+            dx = abs(x1 - x0)
+            dy = abs(y1 - y0)
+            x, y = x0, y0
+            sx = 1 if x0 < x1 else -1
+            sy = 1 if y0 < y1 else -1
+
+            if dx > dy:
+                err = dx / 2.0
+                while x != x1:
+                    points.append((x, y))
+                    err -= dy
+                    if err < 0:
+                        y += sy
+                        err += dx
+                    x += sx
+            else:
+                err = dy / 2.0
+                while y != y1:
+                    points.append((x, y))
+                    err -= dx
+                    if err < 0:
+                        x += sx
+                        err += dy
+                    y += sy
+
+            points.append((x1, y1))
+            return points
+
+        # Cast rays to every tile in square around player
+        for y in range(py - radius, py + radius + 1):
+            for x in range(px - radius, px + radius + 1):
+
+                if not (0 <= x < self.width and 0 <= y < self.height):
+                    continue
+
+                if abs(x - px) + abs(y - py) > radius:
+                    continue
+
+                for lx, ly in line(px, py, x, y):
+
+                    if not (0 <= lx < self.width and 0 <= ly < self.height):
+                        break
+
+                    self.visible[ly][lx] = True
+                    self.discovered[ly][lx] = True
+
+                    # Stop ray if wall hit (but wall itself is visible)
+                    if self.grid[ly][lx] == wall and (lx, ly) != (px, py):
+                        break
+    def draw(self):
+        self.update_visibility(Player)
+
+        temp_grid = [row[:] for row in self.grid]
+
+        for entity in self.entities:
+            if (0 <= entity.y < self.height and 
+                0 <= entity.x < self.width and
+                self.visible[entity.y][entity.x]):
+                temp_grid[entity.y][entity.x] = entity.token
+
+        for y in range(self.height):
+            for x in range(self.width):
+                if not self.discovered[y][x]:
+                    print(" ", end="")
+                elif not self.visible[y][x]:
+                    # dim explored tiles
+                    print("\033[2m" + color_map.get(self.grid[y][x], self.grid[y][x]) + "\033[0m", end="")
+                else:
+                    print(color_map.get(temp_grid[y][x], temp_grid[y][x]), end="")
+            print()
+
+    def generate_procedural_map(self):
+        grid = [[wall for _ in range(self.width)]
+                for _ in range(self.height)]
+
+        rooms = []
+        max_rooms = 9
+        max_attempts = 50
+        attempts = 0
+        min_size = 3
+        max_size = 9
+        self.spawn_point = None
+
+        while len(rooms) < max_rooms and attempts < max_attempts:
+            attempts += 1
+
+            w = random.randint(min_size, max_size)
+            h = random.randint(min_size, max_size)
+            x = random.randint(1, self.width - w - 1)
+            y = random.randint(1, self.height - h - 1)
+
+            new_room = (x, y, w, h)
+
+            failed = False
+            for other in rooms:
+                if (x < other[0] + other[2] and
+                    x + w > other[0] and
+                    y < other[1] + other[3] and
+                    y + h > other[1]):
+                    failed = True
+                    break
+
+            if failed:
+                continue
+
+            # Carve room
+            for i in range(x, x + w):
+                for j in range(y, y + h):
+                    grid[j][i] = empty
+
+            # Connect to previous room
+            if rooms:
+                prev_x = rooms[-1][0] + rooms[-1][2] // 2
+                prev_y = rooms[-1][1] + rooms[-1][3] // 2
+                new_x_center = x + w // 2
+                new_y_center = y + h // 2
+
+                if random.choice([True, False]):
+                    for i in range(min(prev_x, new_x_center),
+                                max(prev_x, new_x_center) + 1):
+                        grid[prev_y][i] = empty
+
+                    for j in range(min(prev_y, new_y_center),
+                                max(prev_y, new_y_center) + 1):
+                        grid[j][new_x_center] = empty
+                else:
+                    for j in range(min(prev_y, new_y_center),
+                                max(prev_y, new_y_center) + 1):
+                        grid[j][prev_x] = empty
+
+                    for i in range(min(prev_x, new_x_center),
+                                max(prev_x, new_x_center) + 1):
+                        grid[new_y_center][i] = empty
+
+            rooms.append(new_room)
+
+
+        if not rooms:
+            # emergency fallback room
+            x = self.width // 2 - 3
+            y = self.height // 2 - 3
+            for i in range(x, x + 6):
+                for j in range(y, y + 6):
+                    grid[j][i] = empty
+            rooms.append((x, y, 6, 6))
+
+        # Spawn in first room
+        first = rooms[0]
+        spawn_x = first[0] + first[2] // 2
+        spawn_y = first[1] + first[3] // 2
+        self.spawn_point = (spawn_x, spawn_y)
+
+        # Door in last room
+        last = rooms[-1]
+        door_x = last[0] + last[2] // 2
+        door_y = last[1] + last[3] // 2
+
+        # Prevent spawn and door overlap
+        if (door_x, door_y) == self.spawn_point:
+            door_x += 1
+
+        grid[door_y][door_x] = door
+
+        return grid
+#Here we generate the first 2 entrance levels 
 map1_grid = parse_map(map1_array)
 map2_grid = [
     [wall]*16,
@@ -252,9 +375,11 @@ map2_grid = [
     [wall]*16
 ]
 
+#And then we Save the name and the grid of each to Map Objects
 Map1 = GameMap("map1", map1_grid)
 Map2 = GameMap("map2", map2_grid)
 
+#Adding Doors to each map to allow moving between maps
 Map1.add_door(15,1)
 Map2.add_door(0,1)
 Map2.add_door(14, 2)
@@ -264,10 +389,12 @@ Player = Character("@", 7, 13, False, 5, 5, 5)
 Foe = Character("%", 2, 2, True, 0, 0, 2)
 Chest = Item("C", "Chest", 13, 1)
 
+#And we add them to each maps Entity List
 Map1.add_entity(Player)
 Map1.add_entity(Foe)
 Map2.add_entity(Chest)
 
+#Set the current Map to Map1 for the first level
 current_map = Map1
 
 #Draw_Game prints the Map onto the console, we do this by interating through both the x axis and y axis 
@@ -286,7 +413,7 @@ def Combat():
             Player.HP -= 1
             print("Foe hits you for 1 damage!")
 
-#Try_Move replaces the old delta positions that were used previosly, this new system works better allowing for more expansion
+#Try_Move is responisble for moving the Player and handling Player and Entity Interaction
 def Try_Move(character, dx, dy):
     global dungeon_level, current_map
     new_x = character.x + dx
@@ -299,7 +426,8 @@ def Try_Move(character, dx, dy):
 
     if tile in [wall, water]:
         return False
-
+    
+    #Here if the Player encounters an Active Chest they will pick it up and have their stats improved
     if current_map == Map2 and Chest.active:
         if character.x == Chest.x and character.y == Chest.y:
             Player.ATK += 5
@@ -314,6 +442,7 @@ def Try_Move(character, dx, dy):
     character.x = new_x
     character.y = new_y
 
+    #This handles Player and Door Interation allowing for Players to move between Levels, and if needed Generate New Levels
     if tile == door and character == Player:
 
         if current_map.name == "map1":
@@ -329,15 +458,10 @@ def Try_Move(character, dx, dy):
 
                 new_floor = GameMap(
                     f"Dungeon {dungeon_level}",
-                    width = 30,
+                    width = 55,
                     height= 15
                 )
-
-                Player.x = 1
-                Player.y = 1
-
-                new_floor.add_entity(Player)
-                current_map = new_floor
+                new_floor.enter_map(Player, 1, 1)
 
         elif current_map.name.startswith("Dungeon"):
 
@@ -345,15 +469,11 @@ def Try_Move(character, dx, dy):
 
             new_floor = GameMap(
                 f"Dungeon {dungeon_level}",
-                width=30,
+                width=55,
                 height=15
             )
-            
-            Player.x = 1
-            Player.y = 1
+            new_floor.enter_map(Player, 1, 1)
 
-            new_floor.add_entity(Player)
-            current_map = new_floor
 
 #This is to move the NPC
 def Foe_Move():
@@ -361,7 +481,8 @@ def Foe_Move():
         return
     move = random.choice([(0, -1),(0, 1), (-1, 0), (1,0)])
     Try_Move(Foe, *move)
-#Show the Player's Stats at the top of the screen
+
+#Show the Player's Stats at the top of the screen and what floor they are on
 def Print_Stats():
     print(f"Defence: {Player.DEF} | Attack: {Player.ATK} | Health {Player.HP}")
     if current_map.name.startswith("Dungeon"):
