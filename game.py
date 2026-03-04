@@ -4,42 +4,37 @@ import os
 import re
 import time
 import sys
+import pygame
+pygame.init()
 
-#This first if-else statment checks to see what OS type the Player Has, if its an NT or Windows Based system it will import msvcrt to handle keyboard interaction
-if os.name == "nt":
-    import msvcrt
-    def get_key():
-        key = msvcrt.getch()
-        if key in [b'w', b'W']:
-            return 'w'
-        elif key in [b's', b'S']:
-            return 's'
-        elif key in [b'a', b'A']:
-            return 'a'
-        elif key in [b'd', b'D']:
-            return 'd'
-        elif key in [b'q', b'Q']:
-            return 'q'
-        elif key in [b'e', b'E']:
-            return 'e'
-        elif key in [b'u', b'U']:
-            return 'u'
-        return None
-#However if the USers System is Unix based it will use tty and termios to get Keyboard input
-else:
-    import tty, termios
-    def get_key():
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            key = sys.stdin.read(1)
-            if key.lower() in ['w', 'a', 's', 'd', 'q', 'e', 'u']:
-                return key.lower()
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return None
+TILE_SIZE = 16
+MOVE_DELAY = 120
+last_move_time = 0
 
+font = pygame.font.Font("Perfect DOS VGA 437.ttf", TILE_SIZE)
+
+clock = pygame.time.Clock()
+
+MAP_PIXEL_WIDTH = 55 * TILE_SIZE
+MAP_PIXEL_HEIGHT = 20 * TILE_SIZE
+UI_HEIGHT = 80
+
+screen = pygame.display.set_mode(
+    (MAP_PIXEL_WIDTH, MAP_PIXEL_HEIGHT + UI_HEIGHT)
+)
+
+pygame.display.set_caption("DEMO")
+
+import os
+import sys
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+font_path = resource_path("Perfect DOS VGA 437.ttf")
+font = pygame.font.Font(font_path, TILE_SIZE)
 
 #Main Map Defenition
 map1_array = """
@@ -68,8 +63,8 @@ map1_array = """
 
 #Map Tile sets, these are the token for static Tiles on the map
 water = "~"
-empty = "░"
-wall = "█"
+empty = chr(176)
+wall = chr(219)
 door = ">"
 
 
@@ -83,19 +78,23 @@ value_map = {
 
 #In Colour Map we asign colours to each of the Tiles using ANSI codes this helps with making the game look better
 color_map = {
-    wall: "\033[1;37m█\033[0m",
-    empty: "\033[0;30m░\033[0m",
-    water: "\033[0;34m~\033[0m",
-    "@": "\033[33m@\033[0m",    
-    "%": "\033[35m%\033[0m",    
-    "[": "\033[32m[\033[0m",
-    "/": "\033[32m/\033[0m",
-    "!": "\033[32m!\033[0m",
-    ">": "\033[36m>\033[0m",
-    "g": "\033[31mg\033[0m",
-    "o": "\033[31mo\033[0m",
-    "D": "\033[1;31mD\033[0m"  
+    wall: (200, 200, 200),
+    empty: (40, 40, 40),
+    water: (0, 0, 255),
+    "@": (255, 255, 0),
+    "%": (255, 0, 255),
+    "[": (0, 255, 0),
+    "/": (0, 255, 0),
+    "!": (0, 255, 0),
+    ">": (0, 255, 255),
+    "g": (255, 0, 0),
+    "o": (255, 0, 0),
+    "D": (255, 50, 50)
 }
+
+def get_color(char):
+    return color_map.get(char, (255, 255, 255))
+
 
 def parse_map(array_str, width = 16):
     #Here we are generating the map based on the C Array provided
@@ -114,10 +113,11 @@ def parse_map(array_str, width = 16):
 command = ""
 playerLastMove = True
 dungeon_level = 0
+inventory_open = False
+inventory_selected = 0
+message_log = []
+MAX_LOG_LINES = 2
 
-#System Method allows up to clear the console to make the game feel more real
-def clear():
-    os.system("cls" if os.name == "nt" else "clear")
 
 
 #Class Definitions
@@ -163,6 +163,7 @@ class Character():
 
     def pickup_item(self, item):
         self.inventory.append(item)
+        add_message(f"YOu have picked up a: {item.name}")
 
     def equip_item(self, item):
         if item.type == "weapon":
@@ -187,6 +188,7 @@ class Character():
 
     def use_potion(self, item):
         self.HP += item.hp
+        add_message("Used Potion")
         if self.HP > 20:
             self.HP = 20
 
@@ -507,7 +509,95 @@ current_map = Map1
 
 #Draw_Game prints the Map onto the console, we do this by interating through both the x axis and y axis 
 def Draw_Game():
-    current_map.draw()
+    screen.fill((0, 0, 0))
+
+    current_map.update_visibility(Player)
+
+    for y in range(current_map.height):
+        for x in range(current_map.width):
+
+        # If never seen → draw black
+            if not current_map.discovered[y][x]:
+                continue
+
+            char = current_map[y][x]
+
+            # Draw entity only if visible
+            if current_map.visible[y][x]:
+                for entity in current_map.entities:
+                    if entity.x == x and entity.y == y:
+                        char = entity.token
+
+            color = get_color(char)
+
+            # Darken if not currently visible
+            if not current_map.visible[y][x]:
+                color = tuple(c // 3 for c in color)
+
+            text = font.render(char, True, color)
+            screen.blit(text, (x * TILE_SIZE, y * TILE_SIZE))
+
+            if inventory_open:
+                overlay = pygame.Surface((MAP_PIXEL_WIDTH - 200, MAP_PIXEL_HEIGHT - 100))
+                overlay.set_alpha(220)
+                overlay.fill((20, 20, 20))
+
+                screen.blit(overlay, (100, 50))
+
+                title = font.render("INVENTORY", True, (255,255,255))
+                screen.blit(title, (120, 60))
+
+                weapon_text = font.render(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}", True, (200,200,200))
+                armour_text = font.render(f"Armour: {Player.armour.name if Player.armour else 'None'}", True, (200,200,200))
+
+                screen.blit(weapon_text, (120, 90))
+                screen.blit(armour_text, (120, 110))
+
+                for i, item in enumerate(Player.inventory):
+                    color = (255,255,0) if i == inventory_selected else (200,200,200)
+                    text = font.render(item.name, True, color)
+                    screen.blit(text, (120, 150 + i * 25))
+
+    footer_rect = pygame.Rect(
+        0,
+        MAP_PIXEL_HEIGHT,
+        MAP_PIXEL_WIDTH,
+        UI_HEIGHT
+    )
+
+    pygame.draw.rect(screen, (25, 25, 25), footer_rect)
+    pygame.draw.line(
+        screen,
+        (80, 80, 80),
+        (0, MAP_PIXEL_HEIGHT),
+        (MAP_PIXEL_WIDTH, MAP_PIXEL_HEIGHT),
+        2
+    )
+
+    stats_text = f"ATK: {Player.ATK}  DEF: {Player.DEF}  HP: {Player.HP}"
+    stats_surface = font.render(stats_text, True, (255, 255, 255))
+    screen.blit(stats_surface, (10, MAP_PIXEL_HEIGHT + 5))
+
+
+    log_x = 10
+    log_y = MAP_PIXEL_HEIGHT + 30
+
+    for i, msg in enumerate(message_log):
+        text_surface = font.render(msg, True, (180, 180, 180))
+        screen.blit(text_surface, (log_x, log_y + i * 20))
+
+    pygame.display.flip()
+
+
+
+def add_message(text):
+    global message_log
+
+    message_log.append(text)
+
+    if len(message_log) > MAX_LOG_LINES:
+        message_log.pop(0)
+
 
 #This Deals with PVE combat
 def Combat():
@@ -530,15 +620,15 @@ def Combat():
 
             if Player.ATK > entity.DEF:
                 entity.HP -= 1
-                print("You hit the foe!")
+                add_message("You hit the Foe")
 
             if entity.ATK > Player.DEF:
                 Player.HP -= 1
-                print("The foe hits you!")
+                add_message("You have been Attacked")
 
             if entity.HP <= 0:
                 current_map.entities.remove(entity)
-                print("Foe defeated!")
+                add_message("Foe Defeated")
 
 #Try_Move is responisble for moving the Player and handling Player and Entity Interaction
 def Try_Move(character, dx, dy):
@@ -614,93 +704,75 @@ def Foe_Move():
             move = random.choice([(0, -1),(0, 1), (-1, 0), (1,0)])
             Try_Move(entity, *move)
 
-    
-#Show the Player's Stats at the top of the screen and what floor they are on
-def Print_Stats():
-    print(f"Defence: {Player.DEF} | Attack: {Player.ATK} | Health {Player.HP}")
-    if current_map.name.startswith("Dungeon"):
-        print(f"Dungeon Level: {dungeon_level}")
-    else:
-        print("Dungeon Level: Entrance")
-        
-
-def Inventory():
-    while True:
-        clear()
-        print("====== INVENTORY ======\n")
-
-        print(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}")
-        print(f"Armour: {Player.armour.name if Player.armour else 'None'}")
-
-        if not Player.inventory:
-            print("Inventory is empty")
-        else: 
-            for index, item in enumerate(Player.inventory):
-                letter = chr(ord('a') + index)
-                print(f"{letter}) {item.name}")
-
-        print("\nSelect item to equip/use")
-        print("U = Unequip Weapon")
-        print("I = Unequip Armour")
-        print("Q = Exit")
-
-        key = None
-        while key is None:
-            key = get_key()
-            time.sleep(0.01)
-
-        if key == 'q':
-            return
-        if key == 'u':
-            Player.unequip_item("weapon")
-            continue
-        if key == 'i':
-            Player.unequip_item("armour")
-            continue
-
-        if Player.inventory:
-            index = ord(key) - ord('a')
-            if 0 <= index < len(Player.inventory):
-                item = Player.inventory[index]
-
-                if item.type == "potion":
-                    Player.use_potion(item)
-                    Player.inventory.remove(item)
-                
-                else:
-                    Player.equip_item(item)
-
-def Print_Controls():
-    print("WASD to Move | Q to Quit | E to open Inventory")
-
-os.system("cls" if os.name == "nt" else "clear")
-
 #Here we have the main Game Loop
 def Game_Loop():
-    global playerLastMove
-    while True:
-        clear()
-        Print_Stats()
-        Draw_Game()
-        Print_Controls()
-        Combat()
-        playerLastMove = True
-        command = None
-        while command is None:
-            command = get_key()
-            time.sleep(0.01)
+    global playerLastMove, last_move_time, inventory_open, inventory_selected
 
-        if command == "w":
-            Try_Move(Player, 0, -1)
-        elif command == "s":
-            Try_Move(Player, 0, 1)
-        elif command == "a":
-            Try_Move(Player, -1, 0)
-        elif command == "d":
-            Try_Move(Player, 1, 0)
-        elif command == "q":
-            quit()
-        elif command == "e":
-            Inventory()
-        Foe_Move()
-Game_Loop()
+    running = True
+
+    while running:
+        clock.tick(60)
+
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.KEYDOWN:
+
+                if inventory_open:
+
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_e:
+                        inventory_open = False
+
+                    elif event.key == pygame.K_UP:
+                        inventory_selected = max(0, inventory_selected - 1)
+
+                    elif event.key == pygame.K_DOWN:
+                        inventory_selected = min(len(Player.inventory)-1, inventory_selected + 1)
+
+                    elif event.key == pygame.K_RETURN:
+                        if Player.inventory:
+                            item = Player.inventory[inventory_selected]
+
+                            if item.type == "potion":
+                                Player.use_potion(item)
+                                Player.inventory.remove(item)
+                            else:
+                                Player.equip_item(item)
+
+                else:
+                    if event.key == pygame.K_q:
+                        running = False
+                    elif event.key == pygame.K_e:
+                        inventory_open = True
+
+        if not inventory_open:
+            keys = pygame.key.get_pressed()
+
+            move_x = 0
+            move_y = 0
+
+            if keys[pygame.K_w]:
+                move_y = -1
+            elif keys[pygame.K_s]:
+                move_y = 1
+            elif keys[pygame.K_a]:
+                move_x = -1
+            elif keys[pygame.K_d]:
+                move_x = 1
+
+            current_time = pygame.time.get_ticks()
+
+            if move_x != 0 or move_y != 0:
+                if current_time - last_move_time > MOVE_DELAY:
+                    Try_Move(Player, move_x, move_y)
+                    Combat()
+                    Foe_Move()
+                    last_move_time = current_time
+        Draw_Game()
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    Game_Loop()

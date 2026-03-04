@@ -1,12 +1,13 @@
 # AdventureGame
-This is a Python CLI based Rouge-Like tech demo.
-You control the Player with WASD using prompts in the console.
+This is a Pygame Ascii based rougelike Pygame is a requirement.
 There is now basic Progedrally generated levels in the game, after leaving the Entrance.
 To see the walls move around and it will discover based on where you looked
 
+
+Am working on Builds for Windows and Mac
+
 # TODO:
-1. improve Foe AI and have them spawn in the Procedual rooms
-2. Make Combat more fun 
+1. Make Combat more fun 
 
 # Map Legend:
 * "@" is the Player.
