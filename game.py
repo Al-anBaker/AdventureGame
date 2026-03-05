@@ -1,10 +1,17 @@
-#Imports
+
+#=======
+#IMPORTS
+#=======
 import random
 import os
 import re
 import time
 import sys
 import pygame
+
+#====================
+#Pygame Initalization
+#====================
 pygame.init()
 
 TILE_SIZE = 16
@@ -25,8 +32,6 @@ screen = pygame.display.set_mode(
 
 pygame.display.set_caption("DEMO")
 
-import os
-import sys
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -36,7 +41,10 @@ def resource_path(relative_path):
 font_path = resource_path("Perfect DOS VGA 437.ttf")
 font = pygame.font.Font(font_path, TILE_SIZE)
 
-#Main Map Defenition
+
+#============
+#Map Settings
+#============
 map1_array = """
 {
 {
@@ -60,14 +68,11 @@ map1_array = """
 };
 """
 
-
 #Map Tile sets, these are the token for static Tiles on the map
 water = "~"
 empty = chr(176)
 wall = chr(219)
 door = ">"
-
-
 
 #For the Regex this replaces the Hex codes with the varble name for the Tiles on the map
 value_map = {
@@ -81,15 +86,16 @@ color_map = {
     wall: (200, 200, 200),
     empty: (40, 40, 40),
     water: (0, 0, 255),
-    "@": (255, 255, 0),
-    "%": (255, 0, 255),
-    "[": (0, 255, 0),
-    "/": (0, 255, 0),
-    "!": (0, 255, 0),
-    ">": (0, 255, 255),
-    "g": (255, 0, 0),
-    "o": (255, 0, 0),
-    "D": (255, 50, 50)
+    "@": (255, 255, 0), #Player
+    "%": (255, 0, 255), #Legacy Foe
+    "[": (0, 255, 0), #Leather Armour
+    "/": (0, 255, 0), #Dagger
+    "!": (0, 255, 0), #Health Potion
+    ">": (0, 255, 255), #Door
+    "g": (255, 0, 0), #Goblin
+    "o": (255, 0, 0), #Orc
+    "D": (255, 50, 50), #Demon
+    "|": (255, 140, 0) #Torch
 }
 
 def get_color(char):
@@ -108,8 +114,9 @@ def parse_map(array_str, width = 16):
     return grid
 
 
-
+#===============
 #Global Varibles
+#===============
 command = ""
 playerLastMove = True
 dungeon_level = 0
@@ -117,32 +124,47 @@ inventory_open = False
 inventory_selected = 0
 message_log = []
 MAX_LOG_LINES = 2
+view_radius = 6
 
 
-
-#Class Definitions
-    #The Item Class right now is resposible for Stat Boosts, this is a Class so make scailability easier
+#==============
+#Object Classes
+#==============
 class Item():
-    def __init__(self, token, name, x, y, item_type, atk=0, defn=0, hp=0, active=True):
+    def __init__(self, token, name, x, y, item_type, atk=0, defn=0, hp=0, active=True, vision=0):
+
+        #How the item look on the screen
         self.token = token
+
+        #Its Name for use with the Message Log
         self.name = name
+
+        #Spawn Coordinates
         self.x = x
         self.y = y
+
+        #What Type of Item is it (Weapon, Armour, Equipment)
         self.type = item_type
+
+        #Item Stats these are added to Player Base stats 
         self.atk = atk
         self.defn = defn
         self.hp = hp
+        self.vision = vision
+
+        #If the Item is active or has been picked up (Deactive)
         self.active = active
 
-#The Character Class is here to both avoid dulicated code with the Foe and makes it easy to add new Characters to the map
+
 class Character():
     #Character Vars
-    def __init__(self, token, x, y, NPC, ATK, DEF, HP, current_map=None):
+    def __init__(self, token, name, x, y, NPC, ATK, DEF, HP, GOLD, current_map=None):
 
         #token is how the character looks on the Map
         self.token = token
+        self.name = name
 
-        #Global positions including delta positions
+        #Characters Position Reletive to the Map
         self.x = x
         self.y = y
 
@@ -153,19 +175,25 @@ class Character():
         self.ATK = ATK
         self.DEF = DEF
         self.HP = HP
+        self.GOLD = GOLD
 
+        #To keep Track of what floor the Character is on
         self.current_map = current_map
 
+        #Inventory and Equipped Items
         self.inventory = []
-
         self.weapon = None
         self.armour = None
+        self.misc = None
 
+    #Adds an Item to the Inventory and Informs the Player
     def pickup_item(self, item):
         self.inventory.append(item)
-        add_message(f"YOu have picked up a: {item.name}")
+        add_message(f"You have picked up an: {item.name}")
 
+    #When in the inventory this add the Item from the Inventory to be a held item
     def equip_item(self, item):
+        global view_radius
         if item.type == "weapon":
             if self.weapon:
                 self.ATK -= self.weapon.atk
@@ -178,7 +206,16 @@ class Character():
             self.armour = item
             self.DEF += item.defn
 
+        elif item.type == "misc":
+            if self.misc:
+                view_radius -= self.misc.vision
+            self.misc = item
+            view_radius += item.vision
+
+
+    #Like the Equip Item but unequips instead
     def unequip_item(self, slot):
+        global view_radius
         if slot == "weapon" and self.weapon:
             self.ATK -= self.weapon.atk
             self.weapon = None
@@ -186,6 +223,11 @@ class Character():
             self.DEF -= self.armour.defn
             self.armour = None
 
+        elif slot == "equipment" and self.misc:
+            view_radius -= self.misc.vision
+            self.misc = None
+
+    #For Consumables to give a temporary boot to the Player or Heal
     def use_potion(self, item):
         self.HP += item.hp
         add_message("Used Potion")
@@ -223,10 +265,12 @@ class GameMap:
     def __getitem__(self, index):
         return self.grid[index]
 
+    #Here we add an Entity to the selected map
     def add_entity(self, entity):
         self.entities.append(entity)
         entity.current_map = self
 
+    #Spawn Random Items scatters loot around the map for Players to Pickup
     def spawn_random_items(self):
         if not hasattr(self, "rooms"):
             return
@@ -246,15 +290,18 @@ class GameMap:
         
         roll = random.random()
 
-        if roll < 0.4:
+        if roll < 0.3:
             item = Item("!", "Health Potion", x, y, item_type="potion", hp=5)
         elif roll < 0.7:
             item = Item("/", "Dagger", x, y, item_type="weapon", atk=2)
+        elif roll < 0.9:
+            item = Item("|", "Torch", x, y, item_type="misc", vision=2)
         else:
             item = Item("[", "Leather Armour", x, y, item_type="armour", defn=2)
 
         self.entities.append(item)
 
+    #Here we handle Map Transition for the Player and make sure they spawn in a safe area
     def enter_map(self, player, x, y):
         global current_map
         current_map = self
@@ -265,6 +312,7 @@ class GameMap:
             player.y = y
         self.add_entity(player)
 
+    #This handles Monster Spawning in the Proecedually generated levels
     def spawn_foes(self):
 
         if not hasattr(self, "rooms"):
@@ -292,20 +340,23 @@ class GameMap:
             roll = random.random()
 
             if roll < 0.6:
-                foe = Character("g", x, y, True, 2, 1 , 4)
+                foe = Character("g", "Goblin", x, y, True, 2, 1, 4, 1)
             elif roll < 0.9:
-                foe = Character("o", x, y, True, 3, 2, 6)
+                foe = Character("o", "Orc", x, y, True, 3, 2, 6, 3)
             else:
-                foe = Character("D", x, y, True, 5, 3, 10)
+                foe = Character("D", "Demon", x, y, True, 5, 3, 10, 5)
 
             self.add_entity(foe)
     
-
+    #Basic Method to add a door to a map
     def add_door(self, x, y):
         self.grid[y][x] = door
 
-    def update_visibility(self, player, radius=8):
+    #Update Visibility handles the Players Fog of War, this works by Raycasting until it hits a wall tile
+    def update_visibility(self, player, radius):
         # Clear current visibility
+        global view_radius
+        radius = view_radius
         for y in range(self.height):
             for x in range(self.width):
                 self.visible[y][x] = False
@@ -364,6 +415,8 @@ class GameMap:
                     # Stop ray if wall hit (but wall itself is visible)
                     if self.grid[ly][lx] == wall and (lx, ly) != (px, py):
                         break
+
+    #Here we are drawing the fog for the Player, to make Discovered but not visible tiles Dim
     def draw(self):
         self.update_visibility(Player)
 
@@ -386,6 +439,7 @@ class GameMap:
                     print(color_map.get(temp_grid[y][x], temp_grid[y][x]), end="")
             print()
 
+    #This Method focuses on generating the Provedural Maps, for the Player
     def generate_procedural_map(self):
         grid = [[wall for _ in range(self.width)]
                 for _ in range(self.height)]
@@ -479,6 +533,8 @@ class GameMap:
         grid[door_y][door_x] = door
         self.rooms = rooms
         return grid
+    
+
 #Here we generate the first 2 entrance levels 
 map1_grid = parse_map(map1_array)
 map2_grid = [
@@ -498,7 +554,7 @@ Map2.add_door(0,1)
 Map2.add_door(14, 2)
 
 #Here we initilise the two current characters with their attrbutes
-Player = Character("@", 7, 13, False, 5, 5, 5)
+Player = Character("@", "Player", 7, 13, False, 5, 5, 5, 0)
 
 
 #And we add them to each maps Entity List
@@ -507,11 +563,11 @@ Map1.add_entity(Player)
 #Set the current Map to Map1 for the first level
 current_map = Map1
 
-#Draw_Game prints the Map onto the console, we do this by interating through both the x axis and y axis 
+#Draw_Game prints the Map onto the window, we do this by interating through both the x axis and y axis 
 def Draw_Game():
     screen.fill((0, 0, 0))
 
-    current_map.update_visibility(Player)
+    current_map.update_visibility(Player, view_radius)
 
     for y in range(current_map.height):
         for x in range(current_map.width):
@@ -544,19 +600,21 @@ def Draw_Game():
 
                 screen.blit(overlay, (100, 50))
 
-                title = font.render("INVENTORY", True, (255,255,255))
+                title = font.render("===INVENTORY===", True, (255,255,255))
                 screen.blit(title, (120, 60))
 
                 weapon_text = font.render(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}", True, (200,200,200))
                 armour_text = font.render(f"Armour: {Player.armour.name if Player.armour else 'None'}", True, (200,200,200))
+                misc_text = font.render(f"Equipment: {Player.misc.name if Player.misc else 'None'}", True, (200, 200, 200))
 
                 screen.blit(weapon_text, (120, 90))
                 screen.blit(armour_text, (120, 110))
+                screen.blit(misc_text, (120, 130))
 
                 for i, item in enumerate(Player.inventory):
                     color = (255,255,0) if i == inventory_selected else (200,200,200)
                     text = font.render(item.name, True, color)
-                    screen.blit(text, (120, 150 + i * 25))
+                    screen.blit(text, (120, 180 + i * 25))
 
     footer_rect = pygame.Rect(
         0,
@@ -574,7 +632,7 @@ def Draw_Game():
         2
     )
 
-    stats_text = f"ATK: {Player.ATK}  DEF: {Player.DEF}  HP: {Player.HP}"
+    stats_text = f"ATK: {Player.ATK} | DEF: {Player.DEF} | HP: {Player.HP} | GOLD: {Player.GOLD}"
     stats_surface = font.render(stats_text, True, (255, 255, 255))
     screen.blit(stats_surface, (10, MAP_PIXEL_HEIGHT + 5))
 
@@ -620,15 +678,16 @@ def Combat():
 
             if Player.ATK > entity.DEF:
                 entity.HP -= 1
-                add_message("You hit the Foe")
+                add_message(f"You have attacked: {entity.name}")
 
             if entity.ATK > Player.DEF:
                 Player.HP -= 1
                 add_message("You have been Attacked")
 
             if entity.HP <= 0:
+                Player.GOLD += entity.GOLD
                 current_map.entities.remove(entity)
-                add_message("Foe Defeated")
+                add_message(f"{entity.name} Defeated")
 
 #Try_Move is responisble for moving the Player and handling Player and Entity Interaction
 def Try_Move(character, dx, dy):
@@ -740,7 +799,6 @@ def Game_Loop():
                                 Player.inventory.remove(item)
                             else:
                                 Player.equip_item(item)
-
                 else:
                     if event.key == pygame.K_q:
                         running = False
@@ -753,13 +811,13 @@ def Game_Loop():
             move_x = 0
             move_y = 0
 
-            if keys[pygame.K_w]:
+            if keys[pygame.K_w] or keys[pygame.K_UP]:
                 move_y = -1
-            elif keys[pygame.K_s]:
+            elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
                 move_y = 1
-            elif keys[pygame.K_a]:
+            elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
                 move_x = -1
-            elif keys[pygame.K_d]:
+            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
                 move_x = 1
 
             current_time = pygame.time.get_ticks()
