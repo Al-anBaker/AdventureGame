@@ -42,44 +42,16 @@ font_path = resource_path("Perfect DOS VGA 437.ttf")
 font = pygame.font.Font(font_path, TILE_SIZE)
 
 
-#============
-#Map Settings
-#============
-map1_array = """
-{
-{
-0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0x00000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0xffff0000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0xffff0000, 0xffff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xffff0000, 0xffff0000, 0xffff0000, 0xff000000, 
-0xff000000, 0xffff0000, 0xffff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 
-0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000
-}
-};
-"""
+
 
 #Map Tile sets, these are the token for static Tiles on the map
 water = "~"
 empty = chr(176)
 wall = chr(219)
 door = ">"
+grass = "."
+tree = "T"
 
-#For the Regex this replaces the Hex codes with the varble name for the Tiles on the map
-value_map = {
-    "0xff000000": wall,
-    "0xffff0000": water,
-    "0x00000000": empty,
-}
 
 #In Colour Map we asign colours to each of the Tiles using ANSI codes this helps with making the game look better
 color_map = {
@@ -95,23 +67,14 @@ color_map = {
     "g": (255, 0, 0), #Goblin
     "o": (255, 0, 0), #Orc
     "D": (255, 50, 50), #Demon
-    "|": (255, 140, 0) #Torch
+    "|": (255, 140, 0), #Torch
+    ".": (20, 120, 20), #Grass
+    tree: (0, 140, 0) #Tree
 }
 
 def get_color(char):
     return color_map.get(char, (255, 255, 255))
 
-
-def parse_map(array_str, width = 16):
-    #Here we are generating the map based on the C Array provided
-    clean_str = re.sub(r'[\{\}\s]', '', array_str)
-    values = re.findall(r'0x[0-9a-fA-F]+', clean_str)
-    grid = []
-    for i in range(0, len(values), width):
-        row = values[i:i+width]
-        converted_row = [value_map[val.lower()] for val in row]
-        grid.append(converted_row)
-    return grid
 
 
 #===============
@@ -127,6 +90,8 @@ MAX_LOG_LINES = 2
 view_radius = 6
 game_state = "menu"
 player_name_input =""
+OVERWORLD_WIDTH = 55
+OVERWORLD_HEIGHT = 20
 
 
 #==============
@@ -241,6 +206,7 @@ class GameMap:
     def __init__(self, name, grid=None, width=None, height=None):
         self.name = name
         self.entities = []
+        self.fog_enabled = True
 
         # Case 1: Static map passed in
         if isinstance(grid, list):
@@ -420,26 +386,44 @@ class GameMap:
 
     #Here we are drawing the fog for the Player, to make Discovered but not visible tiles Dim
     def draw(self):
-        self.update_visibility(Player)
 
-        temp_grid = [row[:] for row in self.grid]
-
-        for entity in self.entities:
-            if (0 <= entity.y < self.height and 
-                0 <= entity.x < self.width and
-                self.visible[entity.y][entity.x]):
-                temp_grid[entity.y][entity.x] = entity.token
+        self.update_visibility(Player, view_radius)
 
         for y in range(self.height):
             for x in range(self.width):
-                if not self.discovered[y][x]:
-                    print(" ", end="")
-                elif not self.visible[y][x]:
-                    # dim explored tiles
-                    print("\033[2m" + color_map.get(self.grid[y][x], self.grid[y][x]) + "\033[0m", end="")
+
+                # Skip if never discovered
+                if self.fog_enabled and not self.discovered[y][x]:
+                    continue
+
+                char = self.grid[y][x]
+
+                # If visible, check for entity on tile
+                if self.visible[y][x]:
+                    for entity in self.entities:
+                        if entity.x == x and entity.y == y:
+                            char = entity.token
+                            break
+
+                # --- COLOR HANDLING ---
+                normal_color = get_color(char)
+                dim_color = (
+                    normal_color[0] // 3,
+                    normal_color[1] // 3,
+                    normal_color[2] // 3
+                )
+
+                # Fog handling
+                if not self.fog_enabled:
+                    color = normal_color
                 else:
-                    print(color_map.get(temp_grid[y][x], temp_grid[y][x]), end="")
-            print()
+                    if self.visible[y][x]:
+                        color = normal_color
+                    else:
+                        color = dim_color
+
+                text = font.render(char, True, color)
+                screen.blit(text, (x * TILE_SIZE, y * TILE_SIZE))
 
     #This Method focuses on generating the Provedural Maps, for the Player
     def generate_procedural_map(self):
@@ -536,34 +520,52 @@ class GameMap:
         self.rooms = rooms
         return grid
     
+    def add_forest_patches(self, count=8, min_size=3, max_size=6):
+        for _ in range(count):
+            width = random.randint(min_size, max_size)
+            height = random.randint(min_size, max_size)
 
-#Here we generate the first 2 entrance levels 
-map1_grid = parse_map(map1_array)
-map2_grid = [
-    [wall]*16,
-    [wall] + [empty]*14 + [wall],
-    [wall] + [empty]*14 + [wall],
-    [wall]*16
-]
+            start_x = random.randint(1, self.width - width - 1)
+            start_y = random.randint(1, self.height - height - 1)
 
-#And then we Save the name and the grid of each to Map Objects
-Map1 = GameMap("map1", map1_grid)
-Map2 = GameMap("map2", map2_grid)
+            for y in range(start_y, start_y + height):
+                for x in range(start_x, start_x + width):
+                    if self.grid[y][x] == grass:
+                        self.grid[y][x] = tree
 
-#Adding Doors to each map to allow moving between maps
-Map1.add_door(15,1)
-Map2.add_door(0,1)
-Map2.add_door(14, 2)
+
+def generate_overworld():
+    grid = [[grass for _ in range(OVERWORLD_WIDTH)]
+            for _ in range(OVERWORLD_HEIGHT)]
+    
+
+    for _ in range(5):
+        wx = random.randint(5, OVERWORLD_WIDTH-6)
+        wy = random.randint(5, OVERWORLD_HEIGHT-6)
+
+        for y in range(wy-2, wy+3):
+            for x in range(wx-3, wx+4):
+                if random.random() < 0.7:
+                    grid[y][x] = water
+    return grid
+
+
 
 #Here we initilise the two current characters with their attrbutes
 Player = Character("@", "Player", 7, 13, False, 5, 5, 5, 0)
 
+overworld_grid = generate_overworld()
+Overworld = GameMap("overworld", overworld_grid)
+Overworld.fog_enabled = False
+Overworld.add_forest_patches()
+Overworld.enter_map(Player, 5, 5)
 
-#And we add them to each maps Entity List
-Map1.add_entity(Player)
+Overworld.add_door(10, 10)
+Overworld.add_door(40, 8)
+Overworld.add_door(25, 15)
 
-#Set the current Map to Map1 for the first level
-current_map = Map1
+current_map = Overworld
+
 
 #Draw_Game prints the Map onto the window, we do this by interating through both the x axis and y axis 
 def Draw_Game():
@@ -571,52 +573,30 @@ def Draw_Game():
 
     current_map.update_visibility(Player, view_radius)
 
-    for y in range(current_map.height):
-        for x in range(current_map.width):
+    current_map.draw()
 
-        # If never seen → draw black
-            if not current_map.discovered[y][x]:
-                continue
+    if inventory_open:
+        overlay = pygame.Surface((MAP_PIXEL_WIDTH - 200, MAP_PIXEL_HEIGHT - 100))
+        overlay.set_alpha(220)
+        overlay.fill((20, 20, 20))
 
-            char = current_map[y][x]
+        screen.blit(overlay, (100, 50))
 
-            # Draw entity only if visible
-            if current_map.visible[y][x]:
-                for entity in current_map.entities:
-                    if entity.x == x and entity.y == y:
-                        char = entity.token
+        title = font.render("===INVENTORY===", True, (255,255,255))
+        screen.blit(title, (120, 60))
 
-            color = get_color(char)
+        weapon_text = font.render(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}", True, (200,200,200))
+        armour_text = font.render(f"Armour: {Player.armour.name if Player.armour else 'None'}", True, (200,200,200))
+        misc_text = font.render(f"Equipment: {Player.misc.name if Player.misc else 'None'}", True, (200, 200, 200))
 
-            # Darken if not currently visible
-            if not current_map.visible[y][x]:
-                color = tuple(c // 3 for c in color)
+        screen.blit(weapon_text, (120, 90))
+        screen.blit(armour_text, (120, 110))
+        screen.blit(misc_text, (120, 130))
 
-            text = font.render(char, True, color)
-            screen.blit(text, (x * TILE_SIZE, y * TILE_SIZE))
-
-            if inventory_open:
-                overlay = pygame.Surface((MAP_PIXEL_WIDTH - 200, MAP_PIXEL_HEIGHT - 100))
-                overlay.set_alpha(220)
-                overlay.fill((20, 20, 20))
-
-                screen.blit(overlay, (100, 50))
-
-                title = font.render("===INVENTORY===", True, (255,255,255))
-                screen.blit(title, (120, 60))
-
-                weapon_text = font.render(f"Weapon: {Player.weapon.name if Player.weapon else 'None'}", True, (200,200,200))
-                armour_text = font.render(f"Armour: {Player.armour.name if Player.armour else 'None'}", True, (200,200,200))
-                misc_text = font.render(f"Equipment: {Player.misc.name if Player.misc else 'None'}", True, (200, 200, 200))
-
-                screen.blit(weapon_text, (120, 90))
-                screen.blit(armour_text, (120, 110))
-                screen.blit(misc_text, (120, 130))
-
-                for i, item in enumerate(Player.inventory):
-                    color = (255,255,0) if i == inventory_selected else (200,200,200)
-                    text = font.render(item.name, True, color)
-                    screen.blit(text, (120, 180 + i * 25))
+        for i, item in enumerate(Player.inventory):
+            color = (255,255,0) if i == inventory_selected else (200,200,200)
+            text = font.render(item.name, True, color)
+            screen.blit(text, (120, 180 + i * 25))
 
     footer_rect = pygame.Rect(
         0,
@@ -728,26 +708,20 @@ def Try_Move(character, dx, dy):
     #This handles Player and Door Interation allowing for Players to move between Levels, and if needed Generate New Levels
     if tile == door and character == Player:
 
-        if current_map.name == "map1":
-            Map2.enter_map(Player, 1, 1)
+        # From Overworld → Dungeon
+        if current_map.name == "overworld":
+            dungeon_level = 1
 
-        elif current_map.name == "map2":
+            new_floor = GameMap(
+                f"Dungeon {dungeon_level}",
+                width=55,
+                height=20
+            )
 
-            if new_x == 0 and new_y == 1:
-                Map1.enter_map(Player, 14, 1)
+            new_floor.enter_map(Player, 1, 1)
 
-            else:
-                dungeon_level = 1
-
-                new_floor = GameMap(
-                    f"Dungeon {dungeon_level}",
-                    width = 55,
-                    height= 20
-                )
-                new_floor.enter_map(Player, 1, 1)
-
+        # From Dungeon → Next Dungeon
         elif current_map.name.startswith("Dungeon"):
-
             dungeon_level += 1
 
             new_floor = GameMap(
@@ -755,6 +729,7 @@ def Try_Move(character, dx, dy):
                 width=55,
                 height=20
             )
+
             new_floor.enter_map(Player, 1, 1)
 
 
@@ -868,7 +843,6 @@ def Game_Loop():
                         Player.armour = None
                         Player.misc = None
 
-                        Map1.enter_map(Player, 7, 13)
                         game_state = "menu"
 
             Draw_Game_Over()
