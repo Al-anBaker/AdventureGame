@@ -125,6 +125,8 @@ inventory_selected = 0
 message_log = []
 MAX_LOG_LINES = 2
 view_radius = 6
+game_state = "menu"
+player_name_input =""
 
 
 #==============
@@ -632,7 +634,7 @@ def Draw_Game():
         2
     )
 
-    stats_text = f"ATK: {Player.ATK} | DEF: {Player.DEF} | HP: {Player.HP} | GOLD: {Player.GOLD}"
+    stats_text = f"{Player.name} | ATK: {Player.ATK} | DEF: {Player.DEF} | HP: {Player.HP} | GOLD: {Player.GOLD}"
     stats_surface = font.render(stats_text, True, (255, 255, 255))
     screen.blit(stats_surface, (10, MAP_PIXEL_HEIGHT + 5))
 
@@ -659,7 +661,7 @@ def add_message(text):
 
 #This Deals with PVE combat
 def Combat():
-
+    global game_state
     for entity in current_map.entities[:]:
 
         # Only process Characters
@@ -688,6 +690,9 @@ def Combat():
                 Player.GOLD += entity.GOLD
                 current_map.entities.remove(entity)
                 add_message(f"{entity.name} Defeated")
+
+            if Player.HP <= 0:
+                game_state = "gameover"
 
 #Try_Move is responisble for moving the Player and handling Player and Entity Interaction
 def Try_Move(character, dx, dy):
@@ -763,15 +768,115 @@ def Foe_Move():
             move = random.choice([(0, -1),(0, 1), (-1, 0), (1,0)])
             Try_Move(entity, *move)
 
+def Draw_Main_Menu():
+    screen.fill((0, 0, 0))
+
+    # Title
+    title = font.render("ASCII DUNGEON", True, (255,255,255))
+    title_rect = title.get_rect(center=(MAP_PIXEL_WIDTH // 2, 80))
+    screen.blit(title, title_rect)
+
+    # Prompt
+    prompt = font.render("Enter Your Hero's Name:", True, (200,200,200))
+    prompt_rect = prompt.get_rect(center=(MAP_PIXEL_WIDTH // 2, 150))
+    screen.blit(prompt, prompt_rect)
+
+    # Name input (aligned perfectly with prompt)
+    name_surface = font.render(player_name_input + "_", True, (255,255,0))
+    name_rect = name_surface.get_rect(center=(MAP_PIXEL_WIDTH // 2, 180))
+    screen.blit(name_surface, name_rect)
+
+    # Info
+    info = font.render("Press ENTER to Start", True, (150,150,150))
+    info_rect = info.get_rect(center=(MAP_PIXEL_WIDTH // 2, 240))
+    screen.blit(info, info_rect)
+
+    pygame.display.flip()
+
+def Draw_Game_Over():
+    screen.fill((0, 0, 0))
+
+    title = font.render("====GAME OVER====", True, (255, 0, 0))
+    screen.blit(title, (MAP_PIXEL_WIDTH // 2 - 80, 100))
+
+    name_text = font.render(f"Rest in Peace: {Player.name}", True, (200, 200, 200))
+    screen.blit(name_text, (MAP_PIXEL_WIDTH // 2 - 100, 150))
+
+    info = font.render("Press R to Restart", True, (150, 150, 150))
+    screen.blit(info, (MAP_PIXEL_WIDTH // 2 - 100, 200))
+
+    pygame.display.flip()
+
 #Here we have the main Game Loop
 def Game_Loop():
-    global playerLastMove, last_move_time, inventory_open, inventory_selected
+    global playerLastMove, last_move_time
+    global inventory_open, inventory_selected
+    global game_state, player_name_input, Player
 
     running = True
 
     while running:
         clock.tick(60)
 
+        # =====================
+        # MENU STATE
+        # =====================
+        if game_state == "menu":
+
+            for event in pygame.event.get():
+
+                if event.type == pygame.QUIT:
+                    running = False
+
+                if event.type == pygame.KEYDOWN:
+
+                    if event.key == pygame.K_RETURN:
+                        if player_name_input.strip() == "":
+                            player_name_input = "Hero"
+
+                        Player.name = player_name_input
+                        Player.HP = 20
+                        game_state = "game"
+
+                    elif event.key == pygame.K_BACKSPACE:
+                        player_name_input = player_name_input[:-1]
+
+                    else:
+                        if len(player_name_input) < 12 and event.unicode.isprintable():
+                            player_name_input += event.unicode
+
+            Draw_Main_Menu()
+            continue
+
+        # =====================
+        # GAME OVER STATE
+        # =====================
+        if game_state == "gameover":
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+
+                        # Reset player
+                        Player.HP = 20
+                        Player.GOLD = 0
+                        Player.inventory.clear()
+                        Player.weapon = None
+                        Player.armour = None
+                        Player.misc = None
+
+                        Map1.enter_map(Player, 7, 13)
+                        game_state = "menu"
+
+            Draw_Game_Over()
+            continue
+
+        # =====================
+        # GAME STATE
+        # =====================
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
@@ -828,7 +933,12 @@ def Game_Loop():
                     Combat()
                     Foe_Move()
                     last_move_time = current_time
+
+        if Player.HP <= 0:
+            game_state = "gameover"
+
         Draw_Game()
+
     pygame.quit()
     sys.exit()
 
