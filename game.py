@@ -30,7 +30,7 @@ screen = pygame.display.set_mode(
     (MAP_PIXEL_WIDTH, MAP_PIXEL_HEIGHT + UI_HEIGHT)
 )
 
-pygame.display.set_caption("DEMO")
+pygame.display.set_caption("ASCII DUNGEION")
 
 
 def resource_path(relative_path):
@@ -51,7 +51,7 @@ wall = chr(219)
 door = ">"
 grass = "."
 tree = "T"
-
+stone = "*"
 
 #In Colour Map we asign colours to each of the Tiles using ANSI codes this helps with making the game look better
 color_map = {
@@ -68,8 +68,9 @@ color_map = {
     "o": (255, 0, 0), #Orc
     "D": (255, 50, 50), #Demon
     "|": (255, 140, 0), #Torch
-    ".": (20, 120, 20), #Grass
-    tree: (0, 140, 0) #Tree
+    grass: (20, 120, 20), #Grass
+    tree: (0, 140, 0), #Tree
+    stone: (120, 120, 120) #Stone
 }
 
 def get_color(char):
@@ -92,6 +93,8 @@ game_state = "menu"
 player_name_input =""
 OVERWORLD_WIDTH = 55
 OVERWORLD_HEIGHT = 20
+confirmation_window = False
+FOREST_MOVE_DELAY = 220
 
 
 #==============
@@ -533,6 +536,23 @@ class GameMap:
                     if self.grid[y][x] == grass:
                         self.grid[y][x] = tree
 
+    def surround_doors_with_stone(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y][x] == door:
+
+                    for dy in [-1, 0, 1]:
+                        for dx in [-1, 0, 1]:
+
+                            nx = x + dx
+                            ny = y + dy
+
+                            if 0 <= nx < self.width and 0 <= ny < self.height:
+
+                                # Don't overwrite door itself
+                                if self.grid[ny][nx] == grass:
+                                    self.grid[ny][nx] = stone
+
 
 def generate_overworld():
     grid = [[grass for _ in range(OVERWORLD_WIDTH)]
@@ -554,16 +574,24 @@ def generate_overworld():
 #Here we initilise the two current characters with their attrbutes
 Player = Character("@", "Player", 7, 13, False, 5, 5, 5, 0)
 
+def find_safe_spawn(grid):
+    for y in range(len(grid)):
+        for x in range(len(grid[0])):
+            if grid[y][x] == grass:
+                return x, y
+    return 1, 1  # fallback
+
 overworld_grid = generate_overworld()
 Overworld = GameMap("overworld", overworld_grid)
 Overworld.fog_enabled = False
 Overworld.add_forest_patches()
-Overworld.enter_map(Player, 5, 5)
+spawn_x, spawn_y = find_safe_spawn(overworld_grid)
+Overworld.enter_map(Player, spawn_x, spawn_y)
 
 Overworld.add_door(10, 10)
 Overworld.add_door(40, 8)
 Overworld.add_door(25, 15)
-
+Overworld.surround_doors_with_stone()
 current_map = Overworld
 
 
@@ -574,6 +602,22 @@ def Draw_Game():
     current_map.update_visibility(Player, view_radius)
 
     current_map.draw()
+
+    if confirmation_window:
+        overlay = pygame.Surface((MAP_PIXEL_WIDTH - 230, MAP_PIXEL_HEIGHT - 130))
+        overlay.set_alpha(230)
+        overlay.fill((20, 20, 20))
+
+        screen.blit(overlay, (100, 50))
+
+        title = font.render("Return to the surface?", True, (255, 255, 255))
+        screen.blit(title, (120, 70))
+
+        yes_text = font.render("[Y] Yes", True, (0, 255, 0))
+        no_text = font.render("[N] No", True, (255, 0, 0))
+
+        screen.blit(yes_text, (120, 110))
+        screen.blit(no_text, (120, 135))
 
     if inventory_open:
         overlay = pygame.Surface((MAP_PIXEL_WIDTH - 200, MAP_PIXEL_HEIGHT - 100))
@@ -719,6 +763,7 @@ def Try_Move(character, dx, dy):
             )
 
             new_floor.enter_map(Player, 1, 1)
+            add_message(f"{Player.name} decends into darkness...")
 
         # From Dungeon → Next Dungeon
         elif current_map.name.startswith("Dungeon"):
@@ -731,6 +776,7 @@ def Try_Move(character, dx, dy):
             )
 
             new_floor.enter_map(Player, 1, 1)
+            add_message(f"{Player.name} decends further...")
 
 
 #This is to move the NPC
@@ -787,6 +833,7 @@ def Game_Loop():
     global playerLastMove, last_move_time
     global inventory_open, inventory_selected
     global game_state, player_name_input, Player
+    global confirmation_window, dungeon_level
 
     running = True
 
@@ -878,13 +925,26 @@ def Game_Loop():
                                 Player.inventory.remove(item)
                             else:
                                 Player.equip_item(item)
+
+                elif confirmation_window:
+
+                    if event.key == pygame.K_y:
+                        Overworld.enter_map(Player, 5, 5)
+                        dungeon_level = 0
+                        confirmation_window = False
+                        add_message("You return to the surface.")
+
+                    elif event.key == pygame.K_n or event.key == pygame.K_ESCAPE:
+                        confirmation_window = False
                 else:
                     if event.key == pygame.K_q:
                         running = False
                     elif event.key == pygame.K_e:
                         inventory_open = True
+                    elif event.key == pygame.K_r:
+                        confirmation_window = True
 
-        if not inventory_open:
+        if not inventory_open or not confirmation_window:
             keys = pygame.key.get_pressed()
 
             move_x = 0
@@ -902,7 +962,15 @@ def Game_Loop():
             current_time = pygame.time.get_ticks()
 
             if move_x != 0 or move_y != 0:
-                if current_time - last_move_time > MOVE_DELAY:
+                # Determine current tile movement delay
+                current_tile = current_map.grid[Player.y][Player.x]
+
+                if current_tile == tree:
+                    delay = FOREST_MOVE_DELAY
+                else:
+                    delay = MOVE_DELAY
+
+                if current_time - last_move_time > delay:
                     Try_Move(Player, move_x, move_y)
                     Combat()
                     Foe_Move()
